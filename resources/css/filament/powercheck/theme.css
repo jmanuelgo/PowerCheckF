@@ -1,0 +1,213 @@
+/* resources/css/filament/powercheck/theme.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===========================
+   Marca / paleta
+   =========================== */
+:root {
+  --pc-primary-600: #2563eb; /* azul de marca */
+}
+
+/* ===========================
+   Layout / fondo (login / panel)
+   =========================== */
+.fi-body { @apply bg-gray-950; }
+.fi-layout { @apply min-h-screen; }
+.fi-card  { @apply bg-gray-900/90 border border-gray-800; }
+
+/* ===========================
+   SOLUCIÓN DEFINITIVA PARA SELECTS
+   =========================== */
+/* Ocultar completamente TODAS las flechas nativas */
+select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: none !important;
+}
+
+/* Ocultar flechas en inputs number */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield !important;
+}
+
+/* Forzar que solo se muestre la flecha de Filament */
+.fi-select {
+    position: relative;
+}
+
+.fi-select-chevron {
+    position: absolute !important;
+    right: 0.75rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none !important;
+    z-index: 1000 !important;
+    display: block !important;
+}
+
+/* Eliminar cualquier pseudo-elemento que genere flechas */
+.fi-select *::before,
+.fi-select *::after,
+.fi-btn::before,
+.fi-btn::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Asegurar el padding para la flecha */
+.fi-select .fi-btn {
+    padding-right: 2.5rem !important;
+    position: relative;
+}
+
+/* Remover cualquier icono de fondo */
+.fi-select .fi-btn {
+    background-image: none !important;
+}
+
+/* ===========================
+   Inputs (corregido para selects)
+   =========================== */
+.fi-input:not(select),
+.fi-password-input,
+.fi-textarea {
+  @apply bg-gray-800/80 border border-gray-700/60 text-slate-100 placeholder:text-slate-400 rounded-lg;
+  @apply focus:ring-2 focus:ring-[var(--pc-primary-600)] focus:border-[var(--pc-primary-600)];
+}
+
+/* Select específico */
+.fi-select select.fi-input {
+  @apply bg-gray-800/80 border border-gray-700/60 text-slate-100 placeholder:text-slate-400 rounded-lg;
+  @apply focus:ring-2 focus:ring-[var(--pc-primary-600)] focus:border-[var(--pc-primary-600)];
+  padding-right: 2.5rem !important;
+}
+
+/* Botón del select */
+.fi-select .fi-btn {
+  @apply bg-gray-800/80 border border-gray-700/60 text-slate-100 rounded-lg;
+  @apply focus:ring-2 focus:ring-[var(--pc-primary-600)] focus:border-[var(--pc-primary-600)];
+}
+
+/* ===========================
+   Botones (forma base + colores)
+   =========================== */
+.fi-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold transition border border-transparent;
+}
+
+/* Primario (azul) */
+.fi-btn.fi-btn-primary,
+.fi-btn.fi-color-primary,
+.fi-btn[data-color="primary"] {
+  @apply bg-[var(--pc-primary-600)] text-white hover:bg-blue-700;
+}
+
+/* Secundario / gris */
+.fi-btn.fi-color-gray,
+.fi-btn[data-color="gray"] {
+  @apply bg-gray-700/40 text-white hover:bg-gray-700 border border-gray-600;
+}
+
+/* Peligro / borrar (rojo) */
+.fi-btn.fi-color-danger,
+.fi-btn[data-color="danger"] {
+  @apply bg-red-600 text-white hover:bg-red-700;
+}
+
+/* Éxito (verde) */
+.fi-btn.fi-color-success,
+.fi-btn[data-color="success"] {
+  @apply bg-emerald-600 text-white hover:bg-emerald-700;
+}
+
+/* Advertencia (amarillo) */
+.fi-btn.fi-color-warning,
+.fi-btn[data-color="warning"] {
+  @apply bg-amber-500 text-black hover:bg-amber-600;
+}
+
+/* ===========================
+   Estilos generales
+   =========================== */
+.fi-form-actions { @apply mt-6; }
+.fi-link { @apply text-blue-400 hover:text-blue-300; }
+.fi-label { @apply text-slate-200 font-medium mb-2; }
+
+/* Checkboxes y radios */
+.fi-checkbox input[type="checkbox"],
+.fi-radio input[type="radio"] {
+    @apply bg-gray-700 border-gray-600;
+}
+
+.fi-checkbox input[type="checkbox"]:checked,
+.fi-radio input[type="radio"]:checked {
+    @apply bg-[var(--pc-primary-600)] border-[var(--pc-primary-600)];
+}
+
+/* Estados disabled */
+.fi-input:disabled,
+.fi-select:disabled .fi-btn,
+.fi-textarea:disabled {
+    @apply bg-gray-800/40 text-slate-400 cursor-not-allowed;
+}
+
+/* ===========================
+   SOLUCIÓN NUCLEAR: Si persiste el problema
+   =========================== */
+/* Inspeccionar y eliminar elementos específicos que creen flechas */
+.fi-select .fi-sr-only,
+.fi-select [aria-hidden="true"]:not(.fi-select-chevron) {
+    display: none !important;
+}
+
+/* Forzar que solo un icono de flecha sea visible */
+.fi-icon:not(.fi-select-chevron-icon) {
+    display: none !important;
+}
+
+.fi-select-chevron-icon {
+    display: block !important;
+    width: 1rem !important;
+    height: 1rem !important;
+}
+
+/* Mejorar visualización de repetidores anidados */
+.fi-repeater .fi-repeater {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.fi-repeater .fi-repeater .fi-repeater {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* Mejorar etiquetas de items */
+[data-repeater-item] {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    padding: 1rem;
+}
+
+/* Ocultar campos disabled */
+input:disabled {
+    background-color: #f3f4f6 !important;
+    color: #6b7280 !important;
+}
+
+/* Estilos para los inputs en la vista de rutina */
+.fi-page input[type="number"] {
+    color: #1f2937 !important;
+    background-color: white !important;
+}
