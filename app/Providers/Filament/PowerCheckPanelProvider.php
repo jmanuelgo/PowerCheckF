@@ -111,6 +111,64 @@ class PowerCheckPanelProvider extends PanelProvider
         }
     </style>'
             )
+            ->renderHook(
+                'panels::body.end',
+                fn(): string => <<<HTML
+<style>
+/* Flecha para el trigger del "registros por página" en la paginación de Filament Tables */
+.pc-per-page-trigger {
+    position: relative !important;
+    padding-right: 2rem !important; /* espacio para la flecha */
+}
+
+.pc-per-page-trigger::after {
+    content: "";
+    position: absolute;
+    right: .6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: .9rem;
+    height: .9rem;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    /* flecha blanca hacia abajo; cambia %23fff a %23000 si usas tema claro */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+</style>
+
+<script>
+(() => {
+  // Marca como trigger (para mostrar flecha) el botón del "per page" en cada tabla
+  const markTriggers = () => {
+    // Todas las paginaciones de tablas (v3 suele usar fi-ta-..., pero por si acaso, cubrimos .fi-pagination también)
+    document.querySelectorAll('.fi-ta-pagination, .fi-pagination').forEach(pag => {
+      // Busca botones/drops que contengan solo números (10, 25, 50, 100)
+      const candidates = pag.querySelectorAll('button, .fi-dropdown-trigger, [role="button"]');
+      candidates.forEach(el => {
+        const txt = (el.textContent || '').trim();
+        if (/^(10|25|50|100)$/.test(txt) && !el.classList.contains('pc-per-page-trigger')) {
+          el.classList.add('pc-per-page-trigger');
+        }
+      });
+    });
+  };
+
+  // Ejecuta al cargar
+  window.addEventListener('load', markTriggers);
+
+  // Re-ejecuta cuando Livewire/Alpine re-renderizan (paginación, filtros, etc.)
+  const obs = new MutationObserver(markTriggers);
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+
+  // Filament/Livewire navegación suave
+  document.addEventListener('livewire:navigated', markTriggers);
+})();
+</script>
+HTML
+            )
+
 
 
 
@@ -124,12 +182,14 @@ class PowerCheckPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                \Filament\Pages\Dashboard::class,
+                \App\Filament\Pages\Inicio::class,   // <- en lugar de \Filament\Pages\Dashboard::class
             ])
+
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                \Filament\Widgets\AccountWidget::class,
+                // sin widgets
             ])
+
             ->middleware([
                 \Illuminate\Cookie\Middleware\EncryptCookies::class,
                 \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
