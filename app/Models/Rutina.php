@@ -141,4 +141,9 @@ class Rutina extends Model
 
         $this->save();
     }
+    public function dias()
+    {
+        return $this->hasMany(\App\Models\DiaEntrenamiento::class)
+            ->orderByRaw("FIELD(dia_semana, 'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')");
+    }
 }

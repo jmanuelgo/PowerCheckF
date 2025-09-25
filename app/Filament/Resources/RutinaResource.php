@@ -18,6 +18,8 @@ use Filament\Forms\Set;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\Group;
+use Filament\Notifications\Notification;
+use Filament\Forms\Components\Section;
 
 class RutinaResource extends Resource
 {
@@ -80,7 +82,6 @@ class RutinaResource extends Resource
                             ->default(null)
                             ->placeholder('Ej: 4')
                             ->reactive()
-                            // Al cargar, si 'semanas' está vacío, crea las semanas iniciales.
                             ->afterStateHydrated(function ($state, Forms\Get $get, Forms\Set $set) {
                                 $dur = (int) ($state ?: 0);
                                 $semanas = $get('semanas') ?? [];
@@ -92,13 +93,11 @@ class RutinaResource extends Resource
                                     $nuevo[] = ['numero_semana' => $i, 'dias' => []];
                                 }
                                 $set('semanas', $nuevo);
-                                // Asegura semana activa válida
                                 $act = (int) ($get('semana_activa') ?? 1);
                                 if ($act < 1 || $act > $dur) {
                                     $set('semana_activa', 1);
                                 }
                             })
-                            // Si cambia la duración, ajusta el arreglo 'semanas' (agrega o recorta)
                             ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                 $dur = (int) ($state ?: 0);
                                 if ($dur <= 0) {
@@ -106,8 +105,6 @@ class RutinaResource extends Resource
                                 }
                                 $semanas = $get('semanas') ?? [];
                                 $actual = count($semanas);
-
-                                // Construye el nuevo arreglo manteniendo data existente
                                 $nuevo = [];
                                 for ($i = 1; $i <= $dur; $i++) {
                                     $existente = $semanas[$i - 1] ?? null;
@@ -118,8 +115,6 @@ class RutinaResource extends Resource
                                 }
 
                                 $set('semanas', $nuevo);
-
-                                // Corrige la semana activa si quedó fuera de rango
                                 $act = (int) ($get('semana_activa') ?? 1);
                                 if ($act < 1 || $act > $dur) {
                                     $set('semana_activa', min(max(1, $act), $dur));
@@ -131,15 +126,13 @@ class RutinaResource extends Resource
                             ->maxLength(255),
                     ])
                     ->columns(2),
-
-                // === Selector de "paginación" por semana (no se guarda en BD) ===
                 Forms\Components\Select::make('semana_activa')
                     ->label('Semana a editar')
                     ->helperText('Selecciona qué semana quieres ver/editar.')
                     ->options(function (Forms\Get $get) {
-                        $duracion = (int) ($get('duracion_semanas') ?? 4);
+                        $count = count($get('semanas') ?? []);
                         $opts = [];
-                        for ($i = 1; $i <= max(1, $duracion); $i++) {
+                        for ($i = 1; $i <= $count; $i++) {
                             $opts[$i] = "Semana $i";
                         }
                         return $opts;
@@ -150,6 +143,114 @@ class RutinaResource extends Resource
 
                 Forms\Components\Section::make('Configuración de Ejercicios')
                     ->description('Agrega semanas, días y ejercicios con sus series')
+                    ->headerActions([
+                        Action::make('clonarSemanaActiva')
+                            ->label('Clonar semana')
+                            ->icon('heroicon-m-document-duplicate')
+                            ->modalHeading('Clonar semana activa')
+                            ->modalDescription('Se duplicará la semana seleccionada y se creará como la siguiente semana. Puedes subir pesos en kg o porcentaje.')
+                            ->form([
+                                ToggleButtons::make('tipo')
+                                    ->label('Tipo de incremento')
+                                    ->options([
+                                        'kg'         => 'Kg',
+                                        'porcentaje' => '%',
+                                    ])
+                                    ->inline()
+                                    ->default('kg')
+                                    ->required(),
+                                Forms\Components\TextInput::make('valor')
+                                    ->label('Valor de incremento')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.5)
+                                    ->default(2.5)
+                                    ->required()
+                                    ->helperText('Ej.: 2.5 kg o 5 % según el tipo.'),
+                            ])
+                            ->action(function (array $data, Get $get, Set $set) {
+                                $semanas = $get('semanas') ?? [];
+                                if (empty($semanas)) {
+                                    Notification::make()->title('No hay semanas para clonar')->danger()->send();
+                                    return;
+                                }
+
+                                $activa = (int) ($get('semana_activa') ?? 1);
+                                $origen = null;
+                                foreach ($semanas as $s) {
+                                    if ((int) ($s['numero_semana'] ?? 0) === $activa) {
+                                        $origen = $s;
+                                        break;
+                                    }
+                                }
+                                if (!$origen) {
+                                    Notification::make()->title("No se encontró la Semana {$activa}")->danger()->send();
+                                    return;
+                                }
+                                $maxNum = 0;
+                                foreach ($semanas as $s) {
+                                    $maxNum = max($maxNum, (int) ($s['numero_semana'] ?? 0));
+                                }
+                                $nuevoNumero = max($activa + 1, $maxNum + 1);
+
+                                $tipo  = $data['tipo']  ?? 'kg';
+                                $valor = (float) ($data['valor'] ?? 0);
+                                $clon = $origen;
+                                $clon['numero_semana'] = $nuevoNumero;
+
+                                if (!isset($clon['dias']) || !is_array($clon['dias'])) {
+                                    $clon['dias'] = [];
+                                }
+
+                                foreach ($clon['dias'] as &$dia) {
+                                    if (!isset($dia['ejercicios']) || !is_array($dia['ejercicios'])) {
+                                        $dia['ejercicios'] = [];
+                                    }
+                                    $orden = 1;
+                                    foreach ($dia['ejercicios'] as &$ej) {
+                                        $ej['orden'] = $orden++;
+
+                                        if (!isset($ej['series']) || !is_array($ej['series'])) {
+                                            $ej['series'] = [];
+                                        }
+
+                                        foreach ($ej['series'] as &$serie) {
+                                            $peso = (float) ($serie['peso'] ?? 0);
+                                            if ($tipo === 'porcentaje') {
+                                                $peso = $peso * (1 + ($valor / 100));
+                                            } else {
+                                                $peso = $peso + $valor;
+                                            }
+                                            $serie['peso'] = round($peso, 2);
+                                        }
+                                        unset($serie);
+                                    }
+                                    unset($ej);
+                                }
+                                unset($dia);
+
+                                // Agregar el clon y ordenar por numero_semana
+                                $semanas[] = $clon;
+                                usort($semanas, fn($a, $b) => ((int) ($a['numero_semana'] ?? 0)) <=> ((int) ($b['numero_semana'] ?? 0)));
+
+                                // Asegurar que el selector muestre la nueva semana
+                                $durActual = (int) ($get('duracion_semanas') ?? 0);
+                                if ($nuevoNumero > $durActual) {
+                                    // Primero actualizamos la duración para que el selector tenga la nueva opción...
+                                    $set('duracion_semanas', $nuevoNumero);
+                                }
+                                // ...y luego establecemos el arreglo definitivo de semanas
+                                $set('semanas', array_values($semanas));
+                                // Cambiamos la pestaña a la nueva semana
+                                $set('semana_activa', $nuevoNumero);
+
+                                Notification::make()
+                                    ->title('Semana clonada')
+                                    ->body("Se creó la Semana {$nuevoNumero} a partir de la Semana {$activa}.")
+                                    ->success()
+                                    ->send();
+                            }),
+                    ])
                     ->schema([
                         Forms\Components\Repeater::make('semanas')
                             ->label('Semanas')
@@ -157,12 +258,13 @@ class RutinaResource extends Resource
                                 fn(array $state): ?string =>
                                 isset($state['numero_semana']) ? "Semana {$state['numero_semana']}" : null
                             )
+                            ->reactive()
                             ->schema([
-                                // Guardamos el número, pero no lo mostramos.
+                                // Guardamos el número de semana pero no lo mostramos
                                 Forms\Components\Hidden::make('numero_semana'),
 
-                                // SOLO el contenido de la semana activa es visible.
-                                Group::make()
+                                // ⬇️ Reemplaza el antiguo Group por una Section colapsable
+                                Section::make('Contenido de la semana')
                                     ->schema([
                                         // ==== DÍAS ====
                                         Forms\Components\Repeater::make('dias')
@@ -192,13 +294,6 @@ class RutinaResource extends Resource
                                                             ->searchable()
                                                             ->required(),
 
-                                                        Forms\Components\TextInput::make('orden')
-                                                            ->label('Orden')
-                                                            ->numeric()
-                                                            ->minValue(1)
-                                                            ->default(1)
-                                                            ->required(),
-
                                                         Forms\Components\Textarea::make('notas')
                                                             ->label('Instrucciones')
                                                             ->rows(2)
@@ -208,13 +303,9 @@ class RutinaResource extends Resource
                                                             ->headerActions([
                                                                 \Filament\Forms\Components\Actions\Action::make('addOneSeries')
                                                                     ->label('Agregar 1 serie')
-                                                                    ->action(function (Forms\Get $get, Forms\Set $set) {
+                                                                    ->action(function (Get $get, Set $set) {
                                                                         $series = $get('series') ?? [];
-                                                                        $series[] = [
-                                                                            'repeticiones' => 12,
-                                                                            'peso'         => 0,
-                                                                            'descanso'     => 60,
-                                                                        ];
+                                                                        $series[] = ['repeticiones' => 12, 'peso' => 0, 'descanso' => 60];
                                                                         $set('series', $series);
                                                                     }),
 
@@ -223,21 +314,17 @@ class RutinaResource extends Resource
                                                                     ->modalHeading('Agregar series ')
                                                                     ->modalDescription('Crea varias series iguales de una sola vez.')
                                                                     ->form([
-                                                                        Forms\Components\TextInput::make('cantidad')
-                                                                            ->label('Cantidad de series')->numeric()->minValue(1)->default(3)->required(),
-                                                                        Forms\Components\TextInput::make('repeticiones')
-                                                                            ->label('Repeticiones')->numeric()->minValue(1)->default(8)->required(),
-                                                                        Forms\Components\TextInput::make('peso')
-                                                                            ->label('Peso (kg)')->numeric()->minValue(0)->step(0.5)->default(10)->required(),
-                                                                        Forms\Components\TextInput::make('descanso')
-                                                                            ->label('Descanso (seg)')->numeric()->minValue(0)->default(60)->required(),
+                                                                        Forms\Components\TextInput::make('cantidad')->label('Cantidad de series')->numeric()->minValue(1)->default(3)->required(),
+                                                                        Forms\Components\TextInput::make('repeticiones')->label('Repeticiones')->numeric()->minValue(1)->default(8)->required(),
+                                                                        Forms\Components\TextInput::make('peso')->label('Peso (kg)')->numeric()->minValue(0)->step(0.5)->default(10)->required(),
+                                                                        Forms\Components\TextInput::make('descanso')->label('Descanso (seg)')->numeric()->minValue(0)->default(60)->required(),
                                                                         \Filament\Forms\Components\ToggleButtons::make('modo')
                                                                             ->label('Modo')->options([
                                                                                 'append'  => 'Agregar al final',
                                                                                 'replace' => 'Reemplazar existentes',
                                                                             ])->inline()->default('append')->required(),
                                                                     ])
-                                                                    ->action(function (array $data, Forms\Get $get, Forms\Set $set) {
+                                                                    ->action(function (array $data, Get $get, Set $set) {
                                                                         $seriesActuales = $get('series') ?? [];
                                                                         $n    = (int) ($data['cantidad'] ?? 0);
                                                                         $rep  = (int) ($data['repeticiones'] ?? 0);
@@ -277,19 +364,23 @@ class RutinaResource extends Resource
                                             ->createItemButtonLabel('Agregar Día')
                                             ->columns(1),
                                     ])
-                                    // 👇 Aquí se oculta/mostrar el contenido según la semana activa
-                                    ->visible(function (Forms\Get $get, ?array $state) {
+                                    ->collapsible()
+                                    ->collapsed(function (\Filament\Forms\Get $get, ?array $state) {
                                         $activa = (int) ($get('../../semana_activa') ?? 1);
                                         $n = (int) ($state['numero_semana'] ?? 0);
-                                        return $n === $activa;
+                                        // Colapsa todas las que NO son la activa (pero no las oculta)
+                                        return $n !== $activa;
                                     }),
                             ])
                             ->defaultItems(0)
                             ->minItems(0)
                             ->createItemButtonLabel('Agregar Semana')
                             ->columns(1)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+
+
                     ]),
+
 
                 Forms\Components\Section::make('Notas Adicionales')
                     ->schema([
@@ -399,5 +490,33 @@ class RutinaResource extends Resource
             'edit' => Pages\EditRutina::route('/{record}/edit'),
             'view' => Pages\ViewRutina::route('/{record}'),
         ];
+    }
+    protected static function normalizarSemanas(array $semanas): array
+    {
+        $semanas = array_values($semanas); // quitar huecos de índices
+        $resultado = [];
+        $n = 1;
+
+        foreach ($semanas as $semana) {
+            $semana['numero_semana'] = $n++;
+            $semana['dias'] = array_values($semana['dias'] ?? []);
+
+            foreach ($semana['dias'] as &$dia) {
+                $dia['ejercicios'] = array_values($dia['ejercicios'] ?? []);
+
+                // asegurar orden consecutivo por día
+                $orden = 1;
+                foreach ($dia['ejercicios'] as &$ej) {
+                    $ej['orden'] = $orden++;
+                    $ej['series'] = array_values($ej['series'] ?? []);
+                }
+                unset($ej);
+            }
+            unset($dia);
+
+            $resultado[] = $semana;
+        }
+
+        return $resultado;
     }
 }

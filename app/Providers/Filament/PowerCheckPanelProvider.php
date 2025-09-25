@@ -30,22 +30,13 @@ class PowerCheckPanelProvider extends PanelProvider
             ->default()
             ->id('powerCheck')
             ->path('powerCheck')
-
-            // Activa las pantallas de login / perfil:
             ->login()
             ->profile()
-
-            // ======= BRAND / LOGO =======
-            // Esto reemplaza el texto "PowerCheck" por el logo, también en el login:
             ->brandLogo(asset('image/powercheckLogo2.png'))
             ->brandLogoHeight('5rem')
-
-            // Paleta del panel
             ->colors([
                 'primary' => Color::hex('#2563eb'),
             ])
-
-            // Tu tema (lo tienes configurado ya)
             ->viteTheme('resources/css/filament/powercheck/theme.css')
 
             // ======= FONDO SOLO EN LOGIN (sin publicar vistas) =======
