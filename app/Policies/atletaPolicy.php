@@ -11,37 +11,7 @@ class AtletaPolicy
     use HandlesAuthorization;
 
     /**
-     * Bypass total para admins (antes de otros checks).
-     */
-    public function before(User $user, string $ability): bool|null
-    {
-        if ($user->hasAnyRole(['super_admin'])) {
-            return true;
-        }
-        return null;
-    }
-
-    protected function entrenadorId(User $user): ?int
-    {
-        if (isset($user->entrenador)) {
-            return $user->entrenador->id ?? null;
-        }
-
-        return $user->id;
-    }
-
-    /**
-     * Comprueba si el usuario es dueño del atleta.
-     * (Si no es dueño, no puede ver ni editar).
-     */
-    protected function owns(User $user, Atleta $atleta): bool
-    {
-        $eid = $this->entrenadorId($user);
-        return !is_null($eid) && $atleta->entrenador_id === $eid;
-    }
-
-    /**
-     * Listado (se controla mejor con getEloquentQuery() en el Resource).
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
@@ -49,15 +19,15 @@ class AtletaPolicy
     }
 
     /**
-     * Ver un registro concreto (bloquea acceso por URL si no es dueño).
+     * Determine whether the user can view the model.
      */
     public function view(User $user, Atleta $atleta): bool
     {
-        return $user->can('view_atleta') && $this->owns($user, $atleta);
+        return $user->can('view_atleta');
     }
 
     /**
-     * Crear (permite a entrenadores crear).
+     * Determine whether the user can create models.
      */
     public function create(User $user): bool
     {
@@ -65,55 +35,72 @@ class AtletaPolicy
     }
 
     /**
-     * Actualizar (solo dueño).
+     * Determine whether the user can update the model.
      */
     public function update(User $user, Atleta $atleta): bool
     {
-        return $user->can('update_atleta') && $this->owns($user, $atleta);
+        return $user->can('update_atleta');
     }
 
     /**
-     * Eliminar (solo dueño).
+     * Determine whether the user can delete the model.
      */
     public function delete(User $user, Atleta $atleta): bool
     {
-        return $user->can('delete_atleta') && $this->owns($user, $atleta);
+        return $user->can('delete_atleta');
     }
 
     /**
-     * Eliminación masiva: permite si puede y (opcional) validas dueño en la acción.
-     * (Filament aplica por lote; conviene filtrar records antes de ejecutar).
+     * Determine whether the user can bulk delete.
      */
     public function deleteAny(User $user): bool
     {
         return $user->can('delete_any_atleta');
     }
 
+    /**
+     * Determine whether the user can permanently delete.
+     */
     public function forceDelete(User $user, Atleta $atleta): bool
     {
-        return $user->can('force_delete_atleta') && $this->owns($user, $atleta);
+        return $user->can('force_delete_atleta');
     }
 
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
     public function forceDeleteAny(User $user): bool
     {
         return $user->can('force_delete_any_atleta');
     }
 
+    /**
+     * Determine whether the user can restore.
+     */
     public function restore(User $user, Atleta $atleta): bool
     {
-        return $user->can('restore_atleta') && $this->owns($user, $atleta);
+        return $user->can('restore_atleta');
     }
 
+    /**
+     * Determine whether the user can bulk restore.
+     */
     public function restoreAny(User $user): bool
     {
         return $user->can('restore_any_atleta');
     }
 
+    /**
+     * Determine whether the user can replicate.
+     */
     public function replicate(User $user, Atleta $atleta): bool
     {
-        return $user->can('replicate_atleta') && $this->owns($user, $atleta);
+        return $user->can('replicate_atleta');
     }
 
+    /**
+     * Determine whether the user can reorder.
+     */
     public function reorder(User $user): bool
     {
         return $user->can('reorder_atleta');
