@@ -27,6 +27,17 @@ class RolesSeeder extends Seeder
         $admin      = Role::firstOrCreate(['name' => 'admin',       'guard_name' => $this->guard]);
         $entrenador      = Role::firstOrCreate(['name' => 'entrenador',  'guard_name' => $this->guard]);
         $atleta    = Role::firstOrCreate(['name' => 'atleta',      'guard_name' => $this->guard]);
+        
+        $customPerms = [
+            'devices.view_available',
+            'devices.connect',
+            'devices.disconnect',
+            'devices.force_release',
+        ];
+
+                foreach ($customPerms as $p) {
+            Permission::firstOrCreate(['name' => $p, 'guard_name' => $this->guard]);
+        }
 
         $superAdmin->syncPermissions(
             Permission::query()->where('guard_name', $this->guard)->pluck('id')
@@ -38,6 +49,13 @@ class RolesSeeder extends Seeder
             $this->permissionsForModules(['atleta'])
         );
         $atleta->syncPermissions([]);
+
+        $atleta->givePermissionTo([
+            'devices.view_available',
+            'devices.connect',
+            'devices.disconnect',
+        ]);
+
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
     }
     protected function permissionsForModules(array $modules)
