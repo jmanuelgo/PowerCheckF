@@ -168,7 +168,7 @@
                 <!-- AUMENTO de sombra: shadow-strong -->
                 <article
                     class="p-6 border border-gray-100 sm:p-8 rounded-2xl dark:border-gray-800 bg-white/90 dark:bg-gray-800/40 shadow-strong">
-                    <img src="{{ asset('image/pressBanca.jpg') }}" alt="¿Qué es Powerlifting?"
+                    <img src="{{ asset('image/powerlifting.jpg') }}" alt="¿Qué es Powerlifting?"
                         class="object-cover w-full mb-4 h-44 rounded-xl">
                     <h2 class="mb-3 text-3xl font-semibold">¿Qué es Powerlifting?</h2>
                     <p class="text-lg leading-relaxed">
@@ -297,7 +297,7 @@
                     <ul class="mt-3 space-y-1 text-sm text-gray-300">
                         <li>Email: <a href="mailto:info@powercheck.bo" class="hover:text-white">info@powercheck.bo</a>
                         </li>
-                        <li>Tel: <a href="tel:+59165371924" class="hover:text-white">+591 65371924</a></li>
+                        <li>Tel: <a href="tel:+59165371924" class="hover:text-white">+591 70000000</a></li>
                     </ul>
                 </div>
             </div>
@@ -314,8 +314,8 @@
                 current: 0,
                 slides: [
                     "{{ asset('image/filosofia.jpg') }}",
-                    "{{ asset('image/20250920_104141.jpg') }}",
-                    "{{ asset('image/20250920_104149.jpg') }}"
+                    "{{ asset('image/powerlifting.jpg') }}",
+                    "{{ asset('image/grupoABP.png') }}"
                 ],
                 intervalId: null,
                 init() {

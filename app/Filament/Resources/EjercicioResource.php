@@ -28,12 +28,11 @@ class EjercicioResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Select::make('tipo')
                     ->options([
-                        'cardio' => 'Cardio',
-                        'fuerza' => 'Fuerza',
-                        'flexibilidad' => 'Flexibilidad',
-                        'equilibrio' => 'Equilibrio',
+                        'Cardio' => 'Cardio',
+                        'Fuerza' => 'Fuerza',
+                        'Flexibilidad' => 'Flexibilidad',
+                        'Equilibrio' => 'Equilibrio',
                     ])
-                    ->default('fuerza')
                     ->required(),
                 Forms\Components\Textarea::make('descripcion')
                     ->columnSpanFull(),

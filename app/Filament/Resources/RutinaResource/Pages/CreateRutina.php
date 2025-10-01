@@ -75,37 +75,4 @@ class CreateRutina extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        $data['semanas'] = $this->autonumerarOrdenEjercicios($data['semanas'] ?? []);
-        return $data;
-    }
-    private function autonumerarOrdenEjercicios(array $semanas): array
-    {
-        foreach ($semanas as &$semana) {
-            if (! isset($semana['dias']) || ! is_array($semana['dias'])) {
-                $semana['dias'] = [];
-            }
-
-            foreach ($semana['dias'] as &$dia) {
-                if (! isset($dia['ejercicios']) || ! is_array($dia['ejercicios'])) {
-                    $dia['ejercicios'] = [];
-                }
-
-                $orden = 1;
-                foreach ($dia['ejercicios'] as &$ej) {
-                    $ej['orden'] = $orden++;
-                    // Asegura estructura de series
-                    if (! isset($ej['series']) || ! is_array($ej['series'])) {
-                        $ej['series'] = [];
-                    }
-                }
-                unset($ej);
-            }
-            unset($dia);
-        }
-        unset($semana);
-
-        return $semanas;
-    }
 }

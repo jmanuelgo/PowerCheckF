@@ -9,6 +9,13 @@ use Spatie\Permission\Models\Permission;
 use App\Policies\RolePolicy;
 use App\Policies\PermissionPolicy;
 
+// <-- NUEVO
+use App\Models\Device;
+use App\Policies\DevicePolicy;
+// (Opcional) si quieres policy para sesiones:
+// use App\Models\DeviceSession;
+// use App\Policies\DeviceSessionPolicy;
+
 class AuthServiceProvider extends ServiceProvider
 {
     /**
@@ -17,8 +24,14 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        Role::class => RolePolicy::class,
-        Permission::class => PermissionPolicy::class,
+        Role::class        => RolePolicy::class,
+        Permission::class  => PermissionPolicy::class,
+
+        // <-- NUEVO: registra tu policy de Device
+        Device::class      => DevicePolicy::class,
+
+        // (Opcional)
+        // DeviceSession::class => DeviceSessionPolicy::class,
     ];
 
     /**
@@ -28,7 +41,7 @@ class AuthServiceProvider extends ServiceProvider
     {
         // Solo super_admin tiene bypass total
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('super_admin') ? true : null;
+            return $user?->hasRole('super_admin') ? true : null;
         });
     }
 }

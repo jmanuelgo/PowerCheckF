@@ -12,14 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\ToggleButtons;
-use Filament\Forms\Components\Group;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Section;
 
 class RutinaResource extends Resource
 {
@@ -47,7 +39,7 @@ class RutinaResource extends Resource
                             ->content(function ($get) {
                                 $atletaId = $get('atleta_id') ?? request()->get('atleta_id');
                                 if ($atletaId) {
-                                    $atleta = \App\Models\Atleta::with('user')->find($atletaId);
+                                    $atleta = Atleta::with('user')->find($atletaId);
                                     return $atleta ? $atleta->user->name : 'Atleta no encontrado';
                                 }
                                 return 'No se ha seleccionado atleta';
@@ -80,307 +72,115 @@ class RutinaResource extends Resource
                             ->maxValue(52)
                             ->required()
                             ->default(null)
-                            ->placeholder('Ej: 4')
-                            ->reactive()
-                            ->afterStateHydrated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                $dur = (int) ($state ?: 0);
-                                $semanas = $get('semanas') ?? [];
-                                if ($dur <= 0 || ! empty($semanas)) {
-                                    return;
-                                }
-                                $nuevo = [];
-                                for ($i = 1; $i <= $dur; $i++) {
-                                    $nuevo[] = ['numero_semana' => $i, 'dias' => []];
-                                }
-                                $set('semanas', $nuevo);
-                                $act = (int) ($get('semana_activa') ?? 1);
-                                if ($act < 1 || $act > $dur) {
-                                    $set('semana_activa', 1);
-                                }
-                            })
-                            ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                $dur = (int) ($state ?: 0);
-                                if ($dur <= 0) {
-                                    return;
-                                }
-                                $semanas = $get('semanas') ?? [];
-                                $actual = count($semanas);
-                                $nuevo = [];
-                                for ($i = 1; $i <= $dur; $i++) {
-                                    $existente = $semanas[$i - 1] ?? null;
-                                    $nuevo[] = [
-                                        'numero_semana' => $i,
-                                        'dias' => $existente['dias'] ?? [],
-                                    ];
-                                }
-
-                                $set('semanas', $nuevo);
-                                $act = (int) ($get('semana_activa') ?? 1);
-                                if ($act < 1 || $act > $dur) {
-                                    $set('semana_activa', min(max(1, $act), $dur));
-                                }
-                            }),
+                            ->placeholder('Ej: 4'),
 
                         Forms\Components\TextInput::make('version')
                             ->default('1.0')
                             ->maxLength(255),
                     ])
                     ->columns(2),
-                Forms\Components\Select::make('semana_activa')
-                    ->label('Semana a editar')
-                    ->helperText('Selecciona qué semana quieres ver/editar.')
-                    ->options(function (Forms\Get $get) {
-                        $count = count($get('semanas') ?? []);
-                        $opts = [];
-                        for ($i = 1; $i <= $count; $i++) {
-                            $opts[$i] = "Semana $i";
-                        }
-                        return $opts;
-                    })
-                    ->default(1)
-                    ->reactive()
-                    ->dehydrated(false),
 
                 Forms\Components\Section::make('Configuración de Ejercicios')
                     ->description('Agrega semanas, días y ejercicios con sus series')
-                    ->headerActions([
-                        Action::make('clonarSemanaActiva')
-                            ->label('Clonar semana')
-                            ->icon('heroicon-m-document-duplicate')
-                            ->modalHeading('Clonar semana activa')
-                            ->modalDescription('Se duplicará la semana seleccionada y se creará como la siguiente semana. Puedes subir pesos en kg o porcentaje.')
-                            ->form([
-                                ToggleButtons::make('tipo')
-                                    ->label('Tipo de incremento')
-                                    ->options([
-                                        'kg'         => 'Kg',
-                                        'porcentaje' => '%',
-                                    ])
-                                    ->inline()
-                                    ->default('kg')
-                                    ->required(),
-                                Forms\Components\TextInput::make('valor')
-                                    ->label('Valor de incremento')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(0.5)
-                                    ->default(2.5)
-                                    ->required()
-                                    ->helperText('Ej.: 2.5 kg o 5 % según el tipo.'),
-                            ])
-                            ->action(function (array $data, Get $get, Set $set) {
-                                $semanas = $get('semanas') ?? [];
-                                if (empty($semanas)) {
-                                    Notification::make()->title('No hay semanas para clonar')->danger()->send();
-                                    return;
-                                }
-
-                                $activa = (int) ($get('semana_activa') ?? 1);
-                                $origen = null;
-                                foreach ($semanas as $s) {
-                                    if ((int) ($s['numero_semana'] ?? 0) === $activa) {
-                                        $origen = $s;
-                                        break;
-                                    }
-                                }
-                                if (!$origen) {
-                                    Notification::make()->title("No se encontró la Semana {$activa}")->danger()->send();
-                                    return;
-                                }
-                                $maxNum = 0;
-                                foreach ($semanas as $s) {
-                                    $maxNum = max($maxNum, (int) ($s['numero_semana'] ?? 0));
-                                }
-                                $nuevoNumero = max($activa + 1, $maxNum + 1);
-
-                                $tipo  = $data['tipo']  ?? 'kg';
-                                $valor = (float) ($data['valor'] ?? 0);
-                                $clon = $origen;
-                                $clon['numero_semana'] = $nuevoNumero;
-
-                                if (!isset($clon['dias']) || !is_array($clon['dias'])) {
-                                    $clon['dias'] = [];
-                                }
-
-                                foreach ($clon['dias'] as &$dia) {
-                                    if (!isset($dia['ejercicios']) || !is_array($dia['ejercicios'])) {
-                                        $dia['ejercicios'] = [];
-                                    }
-                                    $orden = 1;
-                                    foreach ($dia['ejercicios'] as &$ej) {
-                                        $ej['orden'] = $orden++;
-
-                                        if (!isset($ej['series']) || !is_array($ej['series'])) {
-                                            $ej['series'] = [];
-                                        }
-
-                                        foreach ($ej['series'] as &$serie) {
-                                            $peso = (float) ($serie['peso'] ?? 0);
-                                            if ($tipo === 'porcentaje') {
-                                                $peso = $peso * (1 + ($valor / 100));
-                                            } else {
-                                                $peso = $peso + $valor;
-                                            }
-                                            $serie['peso'] = round($peso, 2);
-                                        }
-                                        unset($serie);
-                                    }
-                                    unset($ej);
-                                }
-                                unset($dia);
-
-                                // Agregar el clon y ordenar por numero_semana
-                                $semanas[] = $clon;
-                                usort($semanas, fn($a, $b) => ((int) ($a['numero_semana'] ?? 0)) <=> ((int) ($b['numero_semana'] ?? 0)));
-
-                                // Asegurar que el selector muestre la nueva semana
-                                $durActual = (int) ($get('duracion_semanas') ?? 0);
-                                if ($nuevoNumero > $durActual) {
-                                    // Primero actualizamos la duración para que el selector tenga la nueva opción...
-                                    $set('duracion_semanas', $nuevoNumero);
-                                }
-                                // ...y luego establecemos el arreglo definitivo de semanas
-                                $set('semanas', array_values($semanas));
-                                // Cambiamos la pestaña a la nueva semana
-                                $set('semana_activa', $nuevoNumero);
-
-                                Notification::make()
-                                    ->title('Semana clonada')
-                                    ->body("Se creó la Semana {$nuevoNumero} a partir de la Semana {$activa}.")
-                                    ->success()
-                                    ->send();
-                            }),
-                    ])
                     ->schema([
                         Forms\Components\Repeater::make('semanas')
-                            ->label('Semanas')
-                            ->itemLabel(
-                                fn(array $state): ?string =>
-                                isset($state['numero_semana']) ? "Semana {$state['numero_semana']}" : null
-                            )
-                            ->reactive()
+                            ->label('')
                             ->schema([
-                                // Guardamos el número de semana pero no lo mostramos
-                                Forms\Components\Hidden::make('numero_semana'),
+                                Forms\Components\Select::make('numero_semana')
+                                    ->label('Semana')
+                                    ->options(function ($get) {
+                                        $duracion = $get('../../duracion_semanas') ?? 4;
+                                        $options = [];
+                                        for ($i = 1; $i <= $duracion; $i++) {
+                                            $options[$i] = "Semana $i";
+                                        }
+                                        return $options;
+                                    })
+                                    ->required()
+                                    ->default(1),
 
-                                // ⬇️ Reemplaza el antiguo Group por una Section colapsable
-                                Section::make('Contenido de la semana')
+                                Forms\Components\Repeater::make('dias')
+                                    ->label('Días')
                                     ->schema([
-                                        // ==== DÍAS ====
-                                        Forms\Components\Repeater::make('dias')
-                                            ->label('Días')
+                                        Forms\Components\Select::make('dia')
+                                            ->label('Día')
+                                            ->options([
+                                                'Lunes' => 'Lunes',
+                                                'Martes' => 'Martes',
+                                                'Miércoles' => 'Miércoles',
+                                                'Jueves' => 'Jueves',
+                                                'Viernes' => 'Viernes',
+                                                'Sábado' => 'Sábado',
+                                                'Domingo' => 'Domingo',
+                                            ])
+                                            ->required()
+                                            ->default('Lunes'),
+
+                                        Forms\Components\Repeater::make('ejercicios')
+                                            ->label('Ejercicios')
                                             ->schema([
-                                                Forms\Components\Select::make('dia')
-                                                    ->label('Día')
-                                                    ->options([
-                                                        'Lunes' => 'Lunes',
-                                                        'Martes' => 'Martes',
-                                                        'Miércoles' => 'Miércoles',
-                                                        'Jueves' => 'Jueves',
-                                                        'Viernes' => 'Viernes',
-                                                        'Sábado' => 'Sábado',
-                                                        'Domingo' => 'Domingo',
-                                                    ])
-                                                    ->required()
-                                                    ->default('Lunes'),
+                                                Forms\Components\Select::make('ejercicio_id')
+                                                    ->label('Ejercicio')
+                                                    ->options(Ejercicio::all()->pluck('nombre', 'id'))
+                                                    ->searchable()
+                                                    ->required(),
 
-                                                // ==== EJERCICIOS ====
-                                                Forms\Components\Repeater::make('ejercicios')
-                                                    ->label('Ejercicios')
+                                                Forms\Components\TextInput::make('orden')
+                                                    ->label('Orden')
+                                                    ->numeric()
+                                                    ->minValue(1)
+                                                    ->default(1)
+                                                    ->required(),
+
+                                                Forms\Components\Textarea::make('notas')
+                                                    ->label('Instrucciones')
+                                                    ->rows(2)
+                                                    ->placeholder('Técnica, precauciones, etc.'),
+
+                                                Forms\Components\Repeater::make('series')
+                                                    ->label('Series')
                                                     ->schema([
-                                                        Forms\Components\Select::make('ejercicio_id')
-                                                            ->label('Ejercicio')
-                                                            ->options(\App\Models\Ejercicio::all()->pluck('nombre', 'id'))
-                                                            ->searchable()
-                                                            ->required(),
+                                                        Forms\Components\TextInput::make('repeticiones')
+                                                            ->label('Repeticiones')
+                                                            ->numeric()
+                                                            ->minValue(1)
+                                                            ->required()
+                                                            ->default(12),
 
-                                                        Forms\Components\Textarea::make('notas')
-                                                            ->label('Instrucciones')
-                                                            ->rows(2)
-                                                            ->placeholder('Técnica, precauciones, etc.'),
+                                                        Forms\Components\TextInput::make('peso')
+                                                            ->label('Peso (kg)')
+                                                            ->numeric()
+                                                            ->step(0.5)
+                                                            ->minValue(0)
+                                                            ->default(0),
 
-                                                        Forms\Components\Section::make('Series')
-                                                            ->headerActions([
-                                                                \Filament\Forms\Components\Actions\Action::make('addOneSeries')
-                                                                    ->label('Agregar 1 serie')
-                                                                    ->action(function (Get $get, Set $set) {
-                                                                        $series = $get('series') ?? [];
-                                                                        $series[] = ['repeticiones' => 12, 'peso' => 0, 'descanso' => 60];
-                                                                        $set('series', $series);
-                                                                    }),
-
-                                                                \Filament\Forms\Components\Actions\Action::make('presetSeries')
-                                                                    ->label('Agregar series ')
-                                                                    ->modalHeading('Agregar series ')
-                                                                    ->modalDescription('Crea varias series iguales de una sola vez.')
-                                                                    ->form([
-                                                                        Forms\Components\TextInput::make('cantidad')->label('Cantidad de series')->numeric()->minValue(1)->default(3)->required(),
-                                                                        Forms\Components\TextInput::make('repeticiones')->label('Repeticiones')->numeric()->minValue(1)->default(8)->required(),
-                                                                        Forms\Components\TextInput::make('peso')->label('Peso (kg)')->numeric()->minValue(0)->step(0.5)->default(10)->required(),
-                                                                        Forms\Components\TextInput::make('descanso')->label('Descanso (seg)')->numeric()->minValue(0)->default(60)->required(),
-                                                                        \Filament\Forms\Components\ToggleButtons::make('modo')
-                                                                            ->label('Modo')->options([
-                                                                                'append'  => 'Agregar al final',
-                                                                                'replace' => 'Reemplazar existentes',
-                                                                            ])->inline()->default('append')->required(),
-                                                                    ])
-                                                                    ->action(function (array $data, Get $get, Set $set) {
-                                                                        $seriesActuales = $get('series') ?? [];
-                                                                        $n    = (int) ($data['cantidad'] ?? 0);
-                                                                        $rep  = (int) ($data['repeticiones'] ?? 0);
-                                                                        $kg   = (float) ($data['peso'] ?? 0);
-                                                                        $rest = (int) ($data['descanso'] ?? 0);
-                                                                        $modo = $data['modo'] ?? 'append';
-                                                                        if ($n <= 0 || $rep <= 0) return;
-
-                                                                        $nuevas = [];
-                                                                        for ($i = 0; $i < $n; $i++) {
-                                                                            $nuevas[] = ['repeticiones' => $rep, 'peso' => $kg, 'descanso' => $rest];
-                                                                        }
-
-                                                                        $set('series', $modo === 'replace' ? $nuevas : array_merge($seriesActuales, $nuevas));
-                                                                    }),
-                                                            ])
-                                                            ->schema([
-                                                                Forms\Components\Repeater::make('series')
-                                                                    ->schema([
-                                                                        Forms\Components\TextInput::make('repeticiones')->label('Repeticiones')->numeric()->minValue(1)->required()->default(12),
-                                                                        Forms\Components\TextInput::make('peso')->label('Peso (kg)')->numeric()->step(0.5)->minValue(0)->default(0),
-                                                                        Forms\Components\TextInput::make('descanso')->label('Descanso (seg)')->numeric()->minValue(0)->default(60),
-                                                                    ])
-                                                                    ->addable(false)
-                                                                    ->defaultItems(0)
-                                                                    ->minItems(0)
-                                                                    ->columns(3),
-                                                            ]),
+                                                        Forms\Components\TextInput::make('descanso')
+                                                            ->label('Descanso (seg)')
+                                                            ->numeric()
+                                                            ->minValue(0)
+                                                            ->default(60),
                                                     ])
                                                     ->defaultItems(0)
                                                     ->minItems(0)
-                                                    ->createItemButtonLabel('Agregar Ejercicio')
-                                                    ->columns(1),
+                                                    ->createItemButtonLabel('Agregar Serie')
+                                                    ->columns(3),
                                             ])
                                             ->defaultItems(0)
                                             ->minItems(0)
-                                            ->createItemButtonLabel('Agregar Día')
+                                            ->createItemButtonLabel('Agregar Ejercicio')
                                             ->columns(1),
                                     ])
-                                    ->collapsible()
-                                    ->collapsed(function (\Filament\Forms\Get $get, ?array $state) {
-                                        $activa = (int) ($get('../../semana_activa') ?? 1);
-                                        $n = (int) ($state['numero_semana'] ?? 0);
-                                        // Colapsa todas las que NO son la activa (pero no las oculta)
-                                        return $n !== $activa;
-                                    }),
+                                    ->defaultItems(0)
+                                    ->minItems(0)
+                                    ->createItemButtonLabel('Agregar Día')
+                                    ->columns(1),
                             ])
                             ->defaultItems(0)
                             ->minItems(0)
                             ->createItemButtonLabel('Agregar Semana')
                             ->columns(1)
-                            ->columnSpanFull()
-
-
+                            ->columnSpanFull(),
                     ]),
-
 
                 Forms\Components\Section::make('Notas Adicionales')
                     ->schema([
@@ -393,7 +193,6 @@ class RutinaResource extends Resource
             ]);
     }
 
-
     public static function table(Table $table): Table
     {
         return $table
@@ -402,13 +201,13 @@ class RutinaResource extends Resource
                     ->label('Atleta')
                     ->sortable()
                     ->searchable()
-                    ->visible(fn() => auth()->user()->hasRole('entrenador')), // Solo visible para entrenadores
+                    ->visible(fn () => auth()->user()->hasRole('entrenador')), // Solo visible para entrenadores
 
                 Tables\Columns\TextColumn::make('entrenador.name')
                     ->label('Entrenador')
                     ->sortable()
                     ->searchable()
-                    ->visible(fn() => auth()->user()->hasRole('atleta')), // Solo visible para atletas
+                    ->visible(fn () => auth()->user()->hasRole('atleta')), // Solo visible para atletas
 
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()
@@ -438,17 +237,17 @@ class RutinaResource extends Resource
                             ->get()
                             ->pluck('user.name', 'id');
                     })
-                    ->visible(fn() => auth()->user()->hasRole('entrenador')),
+                    ->visible(fn () => auth()->user()->hasRole('entrenador')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()->hasRole('entrenador')),
+                    ->visible(fn () => auth()->user()->hasRole('entrenador')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()->hasRole('entrenador')),
+                        ->visible(fn () => auth()->user()->hasRole('entrenador')),
                 ]),
             ]);
     }
@@ -490,33 +289,5 @@ class RutinaResource extends Resource
             'edit' => Pages\EditRutina::route('/{record}/edit'),
             'view' => Pages\ViewRutina::route('/{record}'),
         ];
-    }
-    protected static function normalizarSemanas(array $semanas): array
-    {
-        $semanas = array_values($semanas); // quitar huecos de índices
-        $resultado = [];
-        $n = 1;
-
-        foreach ($semanas as $semana) {
-            $semana['numero_semana'] = $n++;
-            $semana['dias'] = array_values($semana['dias'] ?? []);
-
-            foreach ($semana['dias'] as &$dia) {
-                $dia['ejercicios'] = array_values($dia['ejercicios'] ?? []);
-
-                // asegurar orden consecutivo por día
-                $orden = 1;
-                foreach ($dia['ejercicios'] as &$ej) {
-                    $ej['orden'] = $orden++;
-                    $ej['series'] = array_values($ej['series'] ?? []);
-                }
-                unset($ej);
-            }
-            unset($dia);
-
-            $resultado[] = $semana;
-        }
-
-        return $resultado;
     }
 }
