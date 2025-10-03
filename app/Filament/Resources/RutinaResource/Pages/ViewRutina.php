@@ -22,15 +22,17 @@ class ViewRutina extends ViewRecord
     {
         return [
             \Filament\Actions\EditAction::make()
-                ->visible(fn () => auth()->user()->hasRole('entrenador')),
+                ->visible(fn() => auth()->user()->hasRole('entrenador')),
         ];
     }
 
     public function mount($record): void
     {
         parent::mount($record);
+        $ordenDias = "FIELD(dia_semana,'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')";
 
         $this->record->load([
+            'semanasRutina.diasEntrenamiento' => fn($q) => $q->orderByRaw($ordenDias),
             'semanasRutina.diasEntrenamiento.ejerciciosDia.seriesEjercicio.seriesRealizadas',
             'semanasRutina.diasEntrenamiento.ejerciciosDia.ejerciciosCompletados',
             'semanasRutina.diasEntrenamiento.ejerciciosDia.ejercicio',
@@ -39,7 +41,7 @@ class ViewRutina extends ViewRecord
             'entrenador'
         ]);
 
-         $this->cargarEjerciciosCompletados();
+        $this->cargarEjerciciosCompletados();
     }
 
     protected function cargarEjerciciosCompletados()

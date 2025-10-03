@@ -147,6 +147,131 @@ class EjerciciosSeeder extends Seeder
                 'tipo' => 'Fuerza',
                 'grupo_muscular' => 'Piernas'
             ],
+            // Piernas / básicos
+            [
+                'nombre' => 'SQ',
+                'descripcion' => 'Sentadilla convencional enfocada en cuádriceps, glúteos y core.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Piernas',
+            ],
+            [
+                'nombre' => 'Box SQ Pause 2"',
+                'descripcion' => 'Sentadilla a caja con pausa de 2 segundos para control y potencia.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Piernas',
+            ],
+            [
+                'nombre' => 'Hack SQ Tempo 300',
+                'descripcion' => 'Sentadilla hack con tempo 3-0-0 para énfasis en cuádriceps.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Piernas',
+            ],
+            [
+                'nombre' => 'Curl Femoral Sentado',
+                'descripcion' => 'Aislamiento de isquiotibiales en máquina sentado.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Piernas',
+            ],
+            [
+                'nombre' => 'Pull Through Polea',
+                'descripcion' => 'Bisagra de cadera con cuerda en polea para glúteos e isquios.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Glúteos',
+            ],
+            [
+                'nombre' => 'DL',
+                'descripcion' => 'Peso muerto convencional para cadena posterior.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Piernas',
+            ],
+            [
+                'nombre' => 'Hip Thrust',
+                'descripcion' => 'Elevación de cadera con barra para glúteos.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Glúteos',
+            ],
+            [
+                'nombre' => 'Zancadas Dinamic',
+                'descripcion' => 'Zancadas caminando/dinámicas para cuádriceps y glúteos.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Piernas',
+            ],
+
+            // Pecho / empuje
+            [
+                'nombre' => 'BP Kodama + Larsen',
+                'descripcion' => 'Variante de press de banca combinando Kodama y Larsen para control y estabilidad.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Pectorales',
+            ],
+            [
+                'nombre' => 'Flexiones',
+                'descripcion' => 'Flexiones de pecho con enfoque en pectorales, hombros y tríceps.',
+                'tipo' => 'Calistenia',
+                'grupo_muscular' => 'Pectorales',
+            ],
+            [
+                'nombre' => 'BP Inclinado Mancuerna',
+                'descripcion' => 'Press inclinado con mancuernas para parte superior del pecho.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Pectorales',
+            ],
+
+            // Hombros / empuje
+            [
+                'nombre' => 'Press militar a 1 brazo de Pie',
+                'descripcion' => 'Press unilateral de hombro de pie, mejora estabilidad del core.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Hombros',
+            ],
+
+            // Espalda / tracción
+            [
+                'nombre' => 'Remo Apoyo Mancuerna',
+                'descripcion' => 'Remo con mancuerna apoyando el torso para dorsales y trapecios.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Espalda',
+            ],
+            [
+                'nombre' => 'Seal Row',
+                'descripcion' => 'Remo con apoyo completo en banco (seal row) para aislar dorsales.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Espalda',
+            ],
+            [
+                'nombre' => 'Jalón al pecho en Polea Prono',
+                'descripcion' => 'Jalón al pecho con agarre prono para dorsales y bíceps.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Espalda',
+            ],
+
+            // Brazos
+            [
+                'nombre' => 'BICEPS (Curl Martillo)',
+                'descripcion' => 'Curl martillo para braquiorradial y bíceps.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Bíceps',
+            ],
+            [
+                'nombre' => 'BICEPS (Curl Inclinado Mancuerna)',
+                'descripcion' => 'Curl con mancuernas en banco inclinado para mayor estiramiento del bíceps.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Bíceps',
+            ],
+            [
+                'nombre' => 'TRICEPS (Press Francés Mancuerna)',
+                'descripcion' => 'Extensión de tríceps estilo press francés con mancuernas.',
+                'tipo' => 'Fuerza',
+                'grupo_muscular' => 'Tríceps',
+            ],
+
+            // Core
+            [
+                'nombre' => 'Abdomen Isométrico en GHD',
+                'descripcion' => 'Trabajo isométrico de core en máquina GHD.',
+                'tipo' => 'Resistencia',
+                'grupo_muscular' => 'Abdomen',
+            ],
         ];
 
         foreach ($ejercicios as $ejercicio) {

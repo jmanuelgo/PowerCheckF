@@ -112,7 +112,7 @@ class AtletaResource extends Resource
                             : null;
                     }),
                 Tables\Columns\TextColumn::make('user.celular')
-                    ->label('Correo Electrónico')
+                    ->label('Celular')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('genero'),
                 Tables\Columns\TextColumn::make('altura')
@@ -121,8 +121,6 @@ class AtletaResource extends Resource
                 Tables\Columns\TextColumn::make('peso')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('estilo_vida')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('lesiones_previas')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -140,12 +138,12 @@ class AtletaResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('asignarRutina')
-                ->label('Asignar Rutina')
-                ->icon('heroicon-o-clipboard-document-list')
-                ->color('success')
-                ->url(fn (Atleta $record) => \App\Filament\Resources\RutinaResource::getUrl('create', [
-                    'atleta_id' => $record->id
-                ]))
+                    ->label('Asignar Rutina')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('success')
+                    ->url(fn(Atleta $record) => \App\Filament\Resources\RutinaResource::getUrl('create', [
+                        'atleta_id' => $record->id
+                    ]))
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

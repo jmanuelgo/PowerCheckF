@@ -25,4 +25,9 @@ class SemanaRutina extends Model
     {
         return $this->hasMany(DiaEntrenamiento::class, 'semana_rutina_id');
     }
+    public function dias(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\DiaEntrenamiento::class, 'semana_rutina_id')
+            ->orderByRaw("FIELD(dia_semana,'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')");
+    }
 }

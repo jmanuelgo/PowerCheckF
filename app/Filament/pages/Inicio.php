@@ -4,17 +4,18 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Dashboard;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth; // 👈 importa el Facade para evitar el warning
+use Illuminate\Support\Facades\Auth;
+use App\Filament\Widgets\AtletasDelEntrenadorStats;
+use App\Filament\Pages\MiRutinaDeHoy;
+
+
 
 class Inicio extends Dashboard
 {
     protected static ?string $navigationLabel = 'Inicio';
     protected static ?string $navigationIcon  = 'heroicon-o-home';
 
-    // 👇 Fuerza que vaya primero en el menú
     protected static ?int $navigationSort = -1;
-
-    // (Asegúrate de NO poner navigationGroup aquí, déjalo null para no moverlo a otro grupo)
 
     public function getTitle(): string
     {
@@ -44,6 +45,8 @@ class Inicio extends Dashboard
 
     public function getWidgets(): array
     {
-        return [];
+        return [
+            AtletasDelEntrenadorStats::class,
+        ];
     }
 }
