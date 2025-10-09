@@ -45,8 +45,21 @@ class Inicio extends Dashboard
 
     public function getWidgets(): array
     {
-        return [
-            AtletasDelEntrenadorStats::class,
-        ];
+        $user = Auth::user();
+
+        if ($user->hasRole('entrenador')) {
+            return [
+                \App\Filament\Widgets\AtletasDelEntrenadorStats::class,
+            ];
+        }
+
+        if ($user->hasRole('atleta')) {
+            // ⬇️ Este widget mostrará la sesión pendiente del atleta
+            return [
+                \App\Filament\Widgets\RutinaPendienteDeHoyWidget::class,
+            ];
+        }
+
+        return [];
     }
 }

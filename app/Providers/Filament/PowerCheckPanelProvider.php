@@ -23,7 +23,7 @@ use Filament\Navigation\UserMenuItem;
 use App\Filament\Pages\ConfigurarPerfil;
 use Illuminate\Support\Facades\Auth;
 use App\Filament\Pages\Inicio;
-use App\Filament\Pages\MiRutinaDeHoy;
+
 
 class PowerCheckPanelProvider extends PanelProvider
 {
@@ -37,11 +37,6 @@ class PowerCheckPanelProvider extends PanelProvider
             ->profile()
             ->homeUrl(function (): string {
                 $user = Auth::user();
-
-                if ($user?->hasRole('atleta')) {
-                    // Atletas aterrizan en "Mi rutina de hoy"
-                    return MiRutinaDeHoy::getUrl();
-                }
 
                 // Resto se queda en Inicio (tu Dashboard)
                 return Inicio::getUrl();
