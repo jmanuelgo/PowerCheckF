@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'video_api' => [
+        'base'    => env('ANALISIS_VIDEO_BASE', 'http://127.0.0.1:5000/'),
+        'timeout' => (int) env('ANALISIS_VIDEO_TIMEOUT', 180),
+    ],
 
 ];

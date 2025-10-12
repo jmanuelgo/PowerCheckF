@@ -53,64 +53,58 @@ class PowerCheckPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::auth.login.form.after',
                 fn(): string => '<style>
-        /* --- FONDO (lo que ya te funciona) --- */
-        .fi-simple-main, .fi-simple-layout, .fi-auth {
-            min-height: 100vh;
-            background:
-                linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
-                url("' . asset('image/20250918_095344.jpg') . '") center center / cover no-repeat fixed;
-        }
+/* === FONDO GENERAL === */
+.fi-simple-layout, .fi-auth {
+    min-height: 100vh !important;
+    background:
+        linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
+        url("' . asset('image/20250918_095344.jpg') . '") center center / cover no-repeat fixed !important;
+}
 
-        /* --- CARD SÓLIDO (selectores más fuertes y capa interna) --- */
+/* === CUADRO DEL LOGIN === */
+.fi-simple-main {
+    background-color: #0a1a3d !important; /* Azul oscuro sólido */
+    opacity: 0.85 !important;
+    border-radius: 0.75rem !important;
+    padding: 3rem 2rem !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+}
 
-        /* Cubre TODOS los posibles contenedores del card de auth */
-        .fi-auth .fi-auth-card,
-        .fi-auth .fi-card,
-        .fi-simple-main .fi-card {
-            position: relative !important;
-            border-radius: 0.75rem !important;
-            overflow: hidden;            /* para que el ::before respete el borde redondeado */
-            isolation: isolate;          /* crea un stacking context seguro */
-        }
+/* Anula transparencias heredadas */
+.fi-simple-main [class*="bg-white"],
+.fi-simple-main [class*="bg-gray"],
+.fi-simple-main [class*="bg-opacity"],
+.fi-simple-main [style*="background-color"] {
+    background: transparent !important;
+}
 
-        /* Si Filament mete un wrapper interno con bg translúcido, neutralízalo */
-        .fi-auth .fi-card > div[class*="bg-"],
-        .fi-auth .fi-card[class*="bg-"] {
-            background-color: transparent !important;
-        }
+/* === Texto e inputs === */
+.fi-simple-main,
+.fi-simple-main * {
+    color: #f9fafb !important;
+}
 
-        /* Lámina sólida detrás del contenido del card (gana a cualquier bg-*/
-        .fi-auth .fi-auth-card::before,
-        .fi-auth .fi-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: #1f2937;                 /* gris-800 sólido */
-            box-shadow: 0 10px 30px rgba(0,0,0,.6);
-            z-index: 0;                           /* queda detrás del contenido */
-        }
+/* === Botón principal === */
+.fi-simple-main button[type="submit"] {
+    background-color: #2563eb !important;
+    color: #fff !important;
+    border: none !important;
+}
+.fi-simple-main button[type="submit"]:hover {
+    background-color: #1d4ed8 !important;
+}
 
-        /* Garantiza que el contenido quede por encima y clickeable */
-        .fi-auth .fi-auth-card > *,
-        .fi-auth .fi-card > * {
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Texto legible dentro del card */
-        .fi-auth .fi-auth-card,
-        .fi-auth .fi-auth-card * {
-            color: #f9fafb;
-        }
-
-        /* Logo más grande (coincide con brandLogoHeight) */
-        .fi-logo img, .fi-logo svg {
-            height: 5rem !important;
-            width: auto !important;
-        }
-    </style>'
+/* === Logo === */
+.fi-logo img, .fi-logo svg {
+    height: 5rem !important;
+    width: auto !important;
+    display: block !important;
+    margin: 0 auto 1rem auto !important;
+}
+</style>'
             )
+
             ->renderHook(
                 'panels::body.end',
                 fn(): string => <<<HTML

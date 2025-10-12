@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('semanas_rutina', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('rutina_id')->constrained('rutinas')->onDelete('cascade');
-            $table->tinyInteger('numero_semana');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('semanas_rutina')) {
+            Schema::create('semanas_rutina', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('rutina_id')->constrained('rutinas')->onDelete('cascade');
+                $table->tinyInteger('numero_semana');
+                $table->timestamps();
+            });
+        }
     }
 
     public function down()
