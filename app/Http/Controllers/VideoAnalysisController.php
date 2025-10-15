@@ -150,6 +150,21 @@ class VideoAnalysisController extends Controller
         $resp = $this->api()->asForm()->post('/api/process_manual', $req->only('job_id', 'cx', 'cy', 'r'));
         // Si prefieres el alias nuevo:
         // $resp = $this->api()->asForm()->post('/api/process_auto', $req->only('job_id','cx','cy','r'));
+        // 1. Buscamos el análisis por job_id para saber qué ejercicio es
+        $va = VideoAnalysis::where('job_id', $req->job_id)->firstOrFail();
+
+        // 2. Decidimos el endpoint basado en el 'movement' guardado
+        if ($va->movement === 'deadlift') {
+            $endpoint = '/api/process_deadlift';
+        } else {
+            // Para 'squat' y cualquier otro caso, usamos el endpoint manual general
+            $endpoint = '/api/process_manual';
+        }
+
+        // 3. Hacemos la llamada al endpoint correcto
+        $resp = $this->api()
+            ->asForm()
+            ->post($endpoint, $req->only('job_id', 'cx', 'cy', 'r'));
 
         if (!$resp->ok()) {
             VideoAnalysis::where('job_id', $req->job_id)->update(['status' => 'failed']);
