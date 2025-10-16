@@ -6,111 +6,132 @@ use App\Filament\Resources\EjercicioResource;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class ViewProgreso extends ViewRecord
 {
     protected static string $resource = EjercicioResource::class;
 
-    // Blade que renderiza la vista
     protected static string $view = 'filament.resources.ejercicio-resource.pages.view-progreso';
 
-    // Datos que mostraremos en la vista
     public array $stats = [];
     public array $historial = [];
+    public array $pesoData = [];
+    public array $repsData = [];
+
+    public string $sortColumn = 'fecha';
+    public string $sortDirection = 'desc';
+
+    private function getBaseQuery()
+    {
+        $userId = Auth::id();
+        $ejercicioId = $this->record->id;
+
+        return DB::table('series_realizadas as srz')
+            ->join('series_ejercicio as se', 'se.id', '=', 'srz.serie_ejercicio_id')
+            ->join('ejercicios_dia as ed', 'ed.id', '=', 'se.ejercicio_dia_id')
+            ->join('dias_entrenamiento as de', 'de.id', '=', 'ed.dia_entrenamiento_id')
+            ->join('semanas_rutina as sw', 'sw.id', '=', 'de.semana_rutina_id')
+            ->join('rutinas as r', 'r.id', '=', 'sw.rutina_id')
+            ->join('atletas as a', 'a.id', '=', 'r.atleta_id')
+            ->where('ed.ejercicio_id', $ejercicioId)
+            ->where('a.user_id', $userId)
+            ->where('srz.completada', 1);
+    }
 
     public function mount($record): void
     {
         parent::mount($record);
+        abort_unless(Auth::user()?->hasRole('atleta'), 403, 'Acceso no autorizado.');
 
-        // 🔒 Solo atletas
-        abort_unless(Auth::user()?->hasRole('atleta'), 403);
+        $desde30dias = now()->subDays(30)->startOfDay();
+        $baseQuery = $this->getBaseQuery();
 
-        $userId      = Auth::id();
-        $ejercicioId = $this->record->id;
-        $desde       = now()->subDays(30);
-
-        // --- Planeado (de la rutina) ---
-        $planeado = DB::table('series_ejercicio as se')
-            ->join('ejercicios_dia as ed', 'ed.id', '=', 'se.ejercicio_dia_id')
-            ->join('dias_entrenamiento as de', 'de.id', '=', 'ed.dia_entrenamiento_id')
-            ->join('semanas_rutina as sw', 'sw.id', '=', 'de.semana_rutina_id')
-            ->join('rutinas as r', 'r.id', '=', 'sw.rutina_id')
-            ->join('atletas as a', 'a.id', '=', 'r.atleta_id')
-            ->where('ed.ejercicio_id', $ejercicioId)
-            ->where('a.user_id', $userId)
-            ->selectRaw('COUNT(*) as sets_planeadas')
-            ->selectRaw('SUM(CASE WHEN se.peso_objetivo>0 THEN se.peso_objetivo*se.repeticiones_objetivo ELSE 0 END) as volumen_planeado')
+        // --- Cálculos para las tarjetas de estadísticas ---
+        $datosStats = (clone $baseQuery)
+            ->selectRaw('
+                COUNT(srz.id) as total_sets_historico,
+                MAX(CASE WHEN srz.fecha_realizacion >= ? THEN COALESCE(srz.peso_realizado, 0) * (1 + COALESCE(srz.repeticiones_realizadas, 0) / 30.0) ELSE 0 END) as rm_aprox_actual,
+                MAX(COALESCE(srz.peso_realizado, 0) * (1 + COALESCE(srz.repeticiones_realizadas, 0) / 30.0)) as rm_mejor
+            ', [$desde30dias])
             ->first();
 
-        // --- Realizado (últimos 30 días) ---
-        $realizado = DB::table('series_realizadas as srz')
-            ->join('ejercicios_completados as ec', 'ec.id', '=', 'srz.ejercicio_completado_id')
-            ->join('series_ejercicio as se', 'se.id', '=', 'srz.serie_ejercicio_id')
+        // --- Adherencia ---
+        $setsRealizadas30d = (clone $baseQuery)->where('srz.fecha_realizacion', '>=', $desde30dias)->count();
+
+        $setsPlaneadas30d = DB::table('series_ejercicio as se')
             ->join('ejercicios_dia as ed', 'ed.id', '=', 'se.ejercicio_dia_id')
             ->join('dias_entrenamiento as de', 'de.id', '=', 'ed.dia_entrenamiento_id')
             ->join('semanas_rutina as sw', 'sw.id', '=', 'de.semana_rutina_id')
             ->join('rutinas as r', 'r.id', '=', 'sw.rutina_id')
             ->join('atletas as a', 'a.id', '=', 'r.atleta_id')
-            ->where('ed.ejercicio_id', $ejercicioId)
-            ->where('a.user_id', $userId)
-            ->where('srz.fecha_realizacion', '>=', $desde)
-            ->selectRaw('COUNT(*) as sets_realizadas')
-            ->selectRaw('SUM(COALESCE(srz.peso_realizado,0)*COALESCE(srz.repeticiones_realizadas,0)) as volumen_realizado')
-            ->selectRaw('MAX(COALESCE(srz.peso_realizado,0) * (1 + COALESCE(srz.repeticiones_realizadas,0)/30.0)) as rm_aprox_actual')
-            ->first();
+            ->where('ed.ejercicio_id', $this->record->id)
+            ->where('a.user_id', Auth::id())
+            ->whereBetween(DB::raw('DATE_ADD(r.created_at, INTERVAL (sw.numero_semana - 1) WEEK)'), [$desde30dias, now()])
+            ->count();
 
-        // --- Mejor RM histórico ---
-        $rmMejor = DB::table('series_realizadas as srz')
-            ->join('ejercicios_completados as ec', 'ec.id', '=', 'srz.ejercicio_completado_id')
-            ->join('series_ejercicio as se', 'se.id', '=', 'srz.serie_ejercicio_id')
-            ->join('ejercicios_dia as ed', 'ed.id', '=', 'se.ejercicio_dia_id')
-            ->join('dias_entrenamiento as de', 'de.id', '=', 'ed.dia_entrenamiento_id')
-            ->join('semanas_rutina as sw', 'sw.id', '=', 'de.semana_rutina_id')
-            ->join('rutinas as r', 'r.id', '=', 'sw.rutina_id')
-            ->join('atletas as a', 'a.id', '=', 'r.atleta_id')
-            ->where('ed.ejercicio_id', $ejercicioId)
-            ->where('a.user_id', $userId)
-            ->selectRaw('MAX(COALESCE(srz.peso_realizado,0) * (1 + COALESCE(srz.repeticiones_realizadas,0)/30.0)) as rm_mejor')
-            ->value('rm_mejor');
-
-        $setsPlaneadas   = (int) ($planeado->sets_planeadas ?? 0);
-        $setsRealizadas  = (int) ($realizado->sets_realizadas ?? 0);
-        $adherencia      = $setsPlaneadas > 0 ? round($setsRealizadas / $setsPlaneadas * 100) : null;
+        $adherencia = $setsPlaneadas30d > 0 ? round(($setsRealizadas30d / $setsPlaneadas30d) * 100) : null;
 
         $this->stats = [
-            'rm_aprox_actual'  => round($realizado->rm_aprox_actual ?? 0, 1),
-            'rm_mejor'         => round($rmMejor ?? 0, 1),
-            'volumen_planeado' => (float) ($planeado->volumen_planeado ?? 0),
-            'volumen_realizado' => (float) ($realizado->volumen_realizado ?? 0),
-            'adherencia'       => $adherencia,
-            'sets_planeadas'   => $setsPlaneadas,
-            'sets_realizadas'  => $setsRealizadas,
-            'desde'            => $desde->toDateString(),
+            'rm_aprox_actual'   => round($datosStats->rm_aprox_actual ?? 0, 1),
+            'rm_mejor'          => round($datosStats->rm_mejor ?? 0, 1),
+            'total_sets'        => (int) ($datosStats->total_sets_historico ?? 0),
+            'adherencia'        => $adherencia,
+            'sets_planeadas'    => $setsPlaneadas30d,
+            'sets_realizadas'   => $setsRealizadas30d,
         ];
 
-        // --- Historial simple por día (RM aprox. máximo del día) ---
-        $this->historial = DB::table('series_realizadas as srz')
-            ->join('ejercicios_completados as ec', 'ec.id', '=', 'srz.ejercicio_completado_id')
-            ->join('series_ejercicio as se', 'se.id', '=', 'srz.serie_ejercicio_id')
-            ->join('ejercicios_dia as ed', 'ed.id', '=', 'se.ejercicio_dia_id')
-            ->join('dias_entrenamiento as de', 'de.id', '=', 'ed.dia_entrenamiento_id')
-            ->join('semanas_rutina as sw', 'sw.id', '=', 'de.semana_rutina_id')
-            ->join('rutinas as r', 'r.id', '=', 'sw.rutina_id')
-            ->join('atletas as a', 'a.id', '=', 'r.atleta_id')
-            ->where('ed.ejercicio_id', $ejercicioId)
-            ->where('a.user_id', $userId)
-            ->where('srz.fecha_realizacion', '>=', $desde)
-            ->selectRaw('DATE(srz.fecha_realizacion) as fecha')
-            ->selectRaw('MAX(COALESCE(srz.peso_realizado,0) * (1 + COALESCE(srz.repeticiones_realizadas,0)/30.0)) as rm')
+        // --- Datos para los gráficos (histórico) ---
+        $progreso = (clone $baseQuery)
+            ->selectRaw('DATE(srz.fecha_realizacion) as fecha, MAX(srz.peso_realizado) as max_peso, MAX(srz.repeticiones_realizadas) as max_reps')
             ->groupBy('fecha')
-            ->orderBy('fecha')
+            ->orderBy('fecha', 'asc')
+            ->get();
+
+        $this->pesoData = [
+            'labels' => $progreso->pluck('fecha')->toArray(),
+            'data'   => $progreso->pluck('max_peso')->toArray(),
+        ];
+        $this->repsData = [
+            'labels' => $progreso->pluck('fecha')->toArray(),
+            'data'   => $progreso->pluck('max_reps')->toArray(),
+        ];
+
+        $this->updateHistorial();
+    }
+
+    public function sortBy(string $column): void
+    {
+        if ($this->sortColumn === $column) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortColumn = $column;
+            $this->sortDirection = 'desc';
+        }
+        $this->updateHistorial();
+    }
+
+    public function updateHistorial(): void
+    {
+        $this->historial = $this->getBaseQuery()
+            ->select(
+                'srz.fecha_realizacion as fecha',
+                'srz.peso_realizado as peso',
+                'srz.repeticiones_realizadas as repeticiones'
+            )
+            ->orderBy($this->sortColumn, $this->sortDirection)
             ->get()
-            ->map(fn($r) => ['fecha' => $r->fecha, 'rm' => round($r->rm ?? 0, 1)])
+            ->map(fn($r) => [
+                'fecha'        => Carbon::parse($r->fecha)->translatedFormat('d M Y, H:i'),
+                'peso'         => $r->peso,
+                'repeticiones' => $r->repeticiones ?? 0,
+            ])
             ->toArray();
     }
 
+
     protected function getHeaderActions(): array
     {
-        return []; // sin acciones (solo vista)
+        return [];
     }
 }
