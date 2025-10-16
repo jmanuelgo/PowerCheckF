@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\Ejercicio;
+use App\Models\Atleta;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class EjercicioPolicy
+class AtletaPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class EjercicioPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_ejercicio');
+        return $user->can('view_any_atleta');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Ejercicio $ejercicio): bool
+    public function view(User $user, Atleta $atleta): bool
     {
-        return $user->can('view_ejercicio');
+        return $user->can('view_atleta');
     }
 
     /**
@@ -31,23 +31,23 @@ class EjercicioPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_ejercicio');
+        return $user->can('create_atleta');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Ejercicio $ejercicio): bool
+    public function update(User $user, Atleta $atleta): bool
     {
-        return $user->can('update_ejercicio');
+        return $user->can('update_atleta');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Ejercicio $ejercicio): bool
+    public function delete(User $user, Atleta $atleta): bool
     {
-        return $user->can('delete_ejercicio');
+        return $user->can('delete_atleta');
     }
 
     /**
@@ -55,15 +55,15 @@ class EjercicioPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_ejercicio');
+        return $user->can('delete_any_atleta');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, Ejercicio $ejercicio): bool
+    public function forceDelete(User $user, Atleta $atleta): bool
     {
-        return $user->can('force_delete_ejercicio');
+        return $user->can('force_delete_atleta');
     }
 
     /**
@@ -71,15 +71,15 @@ class EjercicioPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_ejercicio');
+        return $user->can('force_delete_any_atleta');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, Ejercicio $ejercicio): bool
+    public function restore(User $user, Atleta $atleta): bool
     {
-        return $user->can('restore_ejercicio');
+        return $user->can('restore_atleta');
     }
 
     /**
@@ -87,15 +87,15 @@ class EjercicioPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_ejercicio');
+        return $user->can('restore_any_atleta');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, Ejercicio $ejercicio): bool
+    public function replicate(User $user, Atleta $atleta): bool
     {
-        return $user->can('replicate_ejercicio');
+        return $user->can('replicate_atleta');
     }
 
     /**
@@ -103,6 +103,6 @@ class EjercicioPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_ejercicio');
+        return $user->can('reorder_atleta');
     }
 }
