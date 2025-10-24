@@ -6,6 +6,10 @@ use App\Models\VideoAnalysis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use App\Models\SquatAnalysis;
+use App\Models\SquatRepMetric;
+use App\Models\DeadliftAnalysis;
+use App\Models\DeadliftRepMetric;
 use App\Filament\Resources\VideoAnalysisResource;
 
 class VideoAnalysisController extends Controller
@@ -32,16 +36,117 @@ class VideoAnalysisController extends Controller
             'title'    => $titles[$movement] ?? 'Subir video',
         ]);
     }
+    private function handleSuccessfulAnalysis(VideoAnalysis $va, array $apiData): void
+    {
+        $va->update([
+            'status'       => 'done',
+            'analyzed_at'  => now(),
+            'download_url' => $apiData['result']['download_url'] ?? null,
+            'raw_metrics'  => json_encode($apiData['result'] ?? null),
+        ]);
+        if ($va->movement === 'squat') {
+            $result = $apiData['result'];
+            $summary = $result['summary'];
+            $repMetrics = $result['metrics'] ?? [];
 
-    // ---- helper promedio eficiencia ----
+            $squatAnalysis = SquatAnalysis::create([
+                'video_analysis_id'    => $va->id,
+                'total_reps'           => $result['count'] ?? 0,
+                'avg_min_knee_angle'   => $summary['avg_min_knee_angle'] ?? null,
+                'avg_efficiency_pct'   => $this->avgEfficiency($repMetrics),
+                'avg_rms_px'           => $this->avgRms($repMetrics),
+                'depth_label'          => $summary['depth_label'] ?? null,
+                'depth_message'        => $summary['depth_message'] ?? null,
+                'best_rep_num'         => $summary['best_rep'] ?? null,
+                'best_efficiency_pct'  => $summary['best_efficiency_pct'] ?? null,
+                'worst_rep_num'        => $summary['worst_rep'] ?? null,
+                'worst_efficiency_pct' => $summary['worst_efficiency_pct'] ?? null,
+            ]);
+
+            $this->saveRepMetrics($squatAnalysis, $repMetrics);
+        } elseif ($va->movement === 'deadlift') {
+            $result = $apiData['result'];
+            $summary = $result['summary'];
+            $repMetrics = $result['metrics'] ?? [];
+
+            $va->deadliftAnalysis()->delete();
+
+            $deadliftAnalysis = $va->deadliftAnalysis()->create([
+                'video_analysis_id'             => $va->id,
+                'total_reps'                    => $result['count'] ?? 0,
+                'avg_efficiency_pct'            => $summary['avg_efficiency_pct'] ?? null,
+                'avg_shoulder_bar_deviation_px' => $summary['avg_horizontal_deviation_px'] ?? null,
+                'summary_message'               => $summary['summary_message'] ?? null,
+            ]);
+            $repDataToInsert = [];
+            foreach ($repMetrics as $repData) {
+                $repDataToInsert[] = [
+                    'deadlift_analysis_id'          => $deadliftAnalysis->id,
+                    'rep_number'                    => $repData['rep'],
+                    'path_length_px'                => $repData['path_len_px'] ?? 0.0,
+                    'vertical_range_px'             => $repData['vert_range_px'] ?? 0.0,
+                    'excess_path_px'                => $repData['excess_path_px'] ?? 0.0,
+                    'efficiency_pct'                => $repData['efficiency_pct'],
+                    'rms_px'                        => $repData['rms_px'],
+                    'tilt_deg'                      => $repData['tilt_deg'],
+                    'avg_shoulder_bar_deviation_px' => $repData['avg_horizontal_deviation_px'] ?? null,
+                    'created_at'                    => now(),
+                    'updated_at'                    => now(),
+                ];
+            }
+
+            if (!empty($repDataToInsert)) {
+                DeadliftRepMetric::insert($repDataToInsert);
+            }
+        }
+    }
+    private function saveRepMetrics(SquatAnalysis $squatAnalysis, array $repMetrics): void
+    {
+        $repDataToInsert = [];
+        foreach ($repMetrics as $repData) {
+            $repDataToInsert[] = [
+                'squat_analysis_id' => $squatAnalysis->id,
+                'rep_number'        => $repData['rep'],
+                'min_knee_angle'    => $repData['min_angle_deg'],
+                // ... resto de los campos de squat
+                'path_length_px'    => $repData['path_len_px'] ?? 0.0,
+                'vertical_range_px' => $repData['vert_range_px'] ?? 0.0,
+                'excess_path_px'    => $repData['excess_path_px'] ?? 0.0,
+                'efficiency_pct'    => $repData['efficiency_pct'],
+                'rms_px'            => $repData['rms_px'],
+                'tilt_deg'          => $repData['tilt_deg'],
+                'created_at'        => now(),
+                'updated_at'        => now(),
+            ];
+        }
+
+        if (!empty($repDataToInsert)) {
+            $squatAnalysis->repMetrics()->insert($repDataToInsert);
+        }
+    }
+
+    private function avgRms(?array $metrics): ?float
+    {
+        if (!$metrics) return null;
+        $vals = [];
+        foreach ($metrics as $m) {
+            if (is_array($m) && isset($m['rms_px']) && $m['rms_px'] !== null) {
+                $vals[] = (float)$m['rms_px'];
+            }
+        }
+        return count($vals) ? round(array_sum($vals) / count($vals), 2) : null;
+    }
+
     private function avgEfficiency(?array $metrics): ?float
     {
         if (!$metrics) return null;
         $vals = [];
         foreach ($metrics as $m) {
-            if (is_array($m) && isset($m['efficiency_pct'])) $vals[] = (float)$m['efficiency_pct'];
+            if (is_array($m) && isset($m['efficiency_pct']) && $m['efficiency_pct'] !== null) {
+                $vals[] = (float)$m['efficiency_pct'];
+            }
         }
-        return count($vals) ? round(array_sum($vals) / count($vals), 1) : null;
+        return count($vals) ? round(array_sum($vals) / count($vals), 2) : null;
     }
 
     // --------- Upload (crea BD y decide a dónde ir) -----------
@@ -52,7 +157,7 @@ class VideoAnalysisController extends Controller
 
         $req->validate([
             'movement'   => 'required|in:squat,bench,deadlift',
-            'video'      => ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:220000'],
+            'video'      => ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:70000'],
             'bar_manual' => ['nullable'],
         ]);
 
@@ -95,14 +200,8 @@ class VideoAnalysisController extends Controller
 
         // b) done automático (sin barra)
         if (($data['status'] ?? null) === 'done') {
-            $eff = $this->avgEfficiency($data['result']['metrics'] ?? []);
-            $va->update([
-                'download_url'   => $data['result']['download_url'] ?? null,
-                'efficiency_pct' => $eff,
-                'raw_metrics'    => $data['result']['metrics'] ?? null,
-                'summary'        => $data['result']['summary'] ?? null,
-                'analyzed_at'    => now(),
-            ]);
+            // REEMPLAZA el bloque $va->update([...]) con esto:
+            $this->handleSuccessfulAnalysis($va, $data);
             return redirect(VideoAnalysisResource::getUrl('result', ['record' => $va]));
         }
 
@@ -167,24 +266,12 @@ class VideoAnalysisController extends Controller
             ->post($endpoint, $req->only('job_id', 'cx', 'cy', 'r'));
 
         if (!$resp->ok()) {
-            VideoAnalysis::where('job_id', $req->job_id)->update(['status' => 'failed']);
+            $va->update(['status' => 'failed']); // Modificado para usar la instancia que ya tienes
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
 
-        $d = $resp->json();
-        $va = VideoAnalysis::where('job_id', $req->job_id)->first();
-
-        if ($va) {
-            $eff = $this->avgEfficiency($d['result']['metrics'] ?? []);
-            $va->update([
-                'status'         => 'done',
-                'download_url'   => $d['result']['download_url'] ?? null,
-                'efficiency_pct' => $eff,
-                'raw_metrics'    => $d['result']['metrics'] ?? null,
-                'summary'        => $d['result']['summary'] ?? null,
-                'analyzed_at'    => now(),
-            ]);
-        }
+        $data = $resp->json();
+        $this->handleSuccessfulAnalysis($va, $data);
 
         return redirect(VideoAnalysisResource::getUrl('result', ['record' => $va]));
     }
@@ -197,14 +284,7 @@ class VideoAnalysisController extends Controller
 
         $req->validate([
             'job_id' => 'required',
-            'hx' => 'required|integer',
-            'hy' => 'required|integer',
-            'kx' => 'required|integer',
-            'ky' => 'required|integer',
-            'ax' => 'required|integer',
-            'ay' => 'required|integer',
-            'cx' => 'required|integer',
-            'cy' => 'required|integer',
+            // ... resto de las validaciones
             'r'  => 'required|integer|min:3',
         ]);
 
@@ -216,20 +296,12 @@ class VideoAnalysisController extends Controller
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
 
+        // --- AJUSTE AQUÍ ---
         $d  = $resp->json();
-        $va = VideoAnalysis::where('job_id', $req->job_id)->first();
+        // Añade esta línea para buscar el registro antes de pasarlo a la función
+        $va = VideoAnalysis::where('job_id', $req->job_id)->firstOrFail();
 
-        if ($va) {
-            $eff = $this->avgEfficiency($d['result']['metrics'] ?? []);
-            $va->update([
-                'status'         => 'done',
-                'download_url'   => $d['result']['download_url'] ?? null,
-                'efficiency_pct' => $eff,
-                'raw_metrics'    => $d['result']['metrics'] ?? null,
-                'summary'        => $d['result']['summary'] ?? null,
-                'analyzed_at'    => now(),
-            ]);
-        }
+        $this->handleSuccessfulAnalysis($va, $d);
 
         return redirect(VideoAnalysisResource::getUrl('result', ['record' => $va]));
     }

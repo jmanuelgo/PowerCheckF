@@ -3,6 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\SquatAnalysis;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\DeadliftAnalysis;
+use App\Models\User;
 
 class VideoAnalysis extends Model
 {
@@ -26,5 +31,20 @@ class VideoAnalysis extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function squatAnalysis(): HasOne
+    {
+        return $this->hasOne(SquatAnalysis::class);
+    }
+    public function getEfficiencyPctAttribute(): ?float
+    {
+        if ($this->movement === 'squat' && $this->squatAnalysis) {
+            return $this->squatAnalysis->avg_efficiency_pct;
+        }
+        return null;
+    }
+    public function deadliftAnalysis(): HasOne
+    {
+        return $this->hasOne(DeadliftAnalysis::class);
     }
 }

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class AtletasDelEntrenadorStats extends BaseWidget
 {
-    protected ?string $heading = 'Mis Atletas';
+    protected ?string $heading = 'Mis Atletas ';
     public static function canView(): bool
     {
         $userId = Auth::id();
