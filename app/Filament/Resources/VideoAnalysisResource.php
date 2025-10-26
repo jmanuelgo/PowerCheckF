@@ -30,7 +30,7 @@ class VideoAnalysisResource extends Resource
             ->actions([
                 Tables\Actions\Action::make('ver_detalles')
                     ->label('Ver Detalles')
-                    ->icon('heroicon-o-document-magnifying-glass') // Icono adecuado para ver detalles
+                    ->icon('heroicon-o-document-magnifying-glass') 
                     ->url(fn(VideoAnalysis $record): string => static::getUrl('result', ['record' => $record])),
                 Tables\Actions\Action::make('descargar')
                     ->label('Descargar')->icon('heroicon-o-arrow-down-tray')

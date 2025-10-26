@@ -17,8 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class AtletaResource extends Resource
 {
     protected static ?string $model = Atleta::class;
-
-    // app/Filament/Resources/AtletaResource.php
+    protected static ?string $navigationLabel = 'Atletas';
     protected static ?string $navigationIcon = 'heroicon-o-users';
 
     public static function form(Form $form): Form
@@ -47,16 +46,16 @@ class AtletaResource extends Resource
                             ->maxLength(15),
                     ]),
                 Forms\Components\FileUpload::make('foto')
-                    ->image() // habilita preview y limita a imágenes
-                    ->directory('atletas') // carpeta dentro del disco
-                    ->disk('public') // usa el disco "public"
+                    ->image() 
+                    ->directory('atletas') 
+                    ->disk('public')
                     ->visibility('public')
                     ->preserveFilenames()
                     ->acceptedFileTypes(['image/*'])
-                    ->maxSize(2048) // 2 MB
+                    ->maxSize(2048) 
                     ->helperText('Sube una foto de perfil (PNG/JPG, máx. 2 MB)')
-                    ->openable()     // botón para abrir
-                    ->downloadable(), // botón para descargar
+                    ->openable()     
+                    ->downloadable(), 
                 Forms\Components\DatePicker::make('fecha_nacimiento')
                     ->label('Fecha de Nacimiento')
                     ->maxDate(now()),
@@ -97,7 +96,6 @@ class AtletaResource extends Resource
                     ->label('Atleta')
                     ->getStateUsing(fn($record) => trim(($record->user?->name ?? '') . ' ' . ($record->user?->apellidos ?? '')))
                     ->searchable(query: function ($query, string $search) {
-                        // Busca por nombre o apellidos
                         $query->where(
                             fn($q) =>
                             $q->where('user_name', 'like', "%{$search}%")

@@ -66,7 +66,7 @@
         @endif
     </div>
 
-    {{-- Acciones principales (Descarga) y Video Renderizado se mantienen igual --}}
+    {{-- Acciones principales --}}
     <div class="flex flex-wrap gap-3 mb-6">
         @if ($record->download_url)
             <x-filament::button tag="a"
@@ -124,7 +124,6 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                         @foreach ($metrics as $m)
                             <tr class="fi-table-row">
-                                {{-- Usamos rep_number (columna DB) --}}
                                 <td class="px-3 py-2 fi-table-cell">{{ data_get($m, 'rep_number', '-') }}</td>
                                 <td
                                     class="px-3 py-2 fi-table-cell font-medium {{ data_get($m, 'efficiency_pct', 0) >= 95 ? 'text-success-600' : (data_get($m, 'efficiency_pct', 0) >= 90 ? 'text-warning-600' : 'text-danger-600') }}">

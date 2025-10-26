@@ -20,7 +20,6 @@ class EditRutina extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Cargar la estructura completa para edición
         $rutina = $this->getRecord();
 
         $data['semanas'] = $rutina->semanasRutina()
@@ -57,7 +56,6 @@ class EditRutina extends EditRecord
 
     protected function handleRecordUpdate($record, array $data): Rutina
     {
-        // Actualizar datos básicos
         $record->update([
             'nombre' => $data['nombre'],
             'objetivo' => $data['objetivo'],
@@ -66,7 +64,6 @@ class EditRutina extends EditRecord
             'version' => $data['version'],
         ]);
 
-        // Sincronizar toda la estructura (elimina lo viejo y crea lo nuevo)
         $record->sincronizarEstructura($data);
 
         return $record;

@@ -93,7 +93,7 @@
 
     <!-- MAIN -->
     <main id="inicio" class="pt-0">
-        <!-- HERO con carrusel (fade automático) -->
+        <!-- HERO -->
         <section x-data="heroCarousel()" x-init="init()"
             class="relative min-h-[100vh] flex items-center isolate overflow-hidden">
             <!-- Slides -->
@@ -152,7 +152,6 @@
         <!-- Filosofía & Qué es (con imágenes) -->
         <section id="about" class="py-20 bg-transparent dark:bg-gray-900 scroll-mt-[88px] md:scroll-mt-[96px]">
             <div class="grid max-w-screen-xl grid-cols-1 gap-10 px-4 mx-auto md:grid-cols-2">
-                <!-- AUMENTO de sombra: shadow-strong -->
                 <article
                     class="p-6 border border-gray-100 sm:p-8 rounded-2xl dark:border-gray-800 bg-white/90 dark:bg-gray-800/40 shadow-strong">
                     <img src="{{ asset('image/filosofia.jpg') }}" alt="Filosofía de la Asociación"
@@ -164,8 +163,6 @@
                         sus miembros.
                     </p>
                 </article>
-
-                <!-- AUMENTO de sombra: shadow-strong -->
                 <article
                     class="p-6 border border-gray-100 sm:p-8 rounded-2xl dark:border-gray-800 bg-white/90 dark:bg-gray-800/40 shadow-strong">
                     <img src="{{ asset('image/pressBanca.jpg') }}" alt="¿Qué es Powerlifting?"
@@ -179,8 +176,6 @@
                 </article>
             </div>
         </section>
-
-        <!-- Cómo funciona (3 pasos) -->
         <section id="como-funciona"
             class="py-16 bg-white/70 dark:bg-gray-800/30 scroll-mt-[88px] md:scroll-mt-[96px]">
             <div class="max-w-screen-xl px-4 mx-auto">
@@ -258,7 +253,6 @@
                         <p class="mt-3 text-gray-600 dark:text-gray-300">Entrenamientos especializados en powerlifting.
                         </p>
                     </article>
-                    <!-- Más cards dinámicas aquí -->
                 </div>
             </div>
         </section>
@@ -307,7 +301,6 @@
         </div>
     </footer>
 
-    <!-- Alpine helpers -->
     <script>
         function heroCarousel() {
             return {

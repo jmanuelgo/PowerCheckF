@@ -228,20 +228,13 @@ class RutinaResource extends Resource
                                     unset($ej);
                                 }
                                 unset($dia);
-
-                                // Agregar el clon y ordenar por numero_semana
                                 $semanas[] = $clon;
                                 usort($semanas, fn($a, $b) => ((int) ($a['numero_semana'] ?? 0)) <=> ((int) ($b['numero_semana'] ?? 0)));
-
-                                // Asegurar que el selector muestre la nueva semana
                                 $durActual = (int) ($get('duracion_semanas') ?? 0);
                                 if ($nuevoNumero > $durActual) {
-                                    // Primero actualizamos la duración para que el selector tenga la nueva opción...
                                     $set('duracion_semanas', $nuevoNumero);
                                 }
-                                // ...y luego establecemos el arreglo definitivo de semanas
                                 $set('semanas', array_values($semanas));
-                                // Cambiamos la pestaña a la nueva semana
                                 $set('semana_activa', $nuevoNumero);
 
                                 Notification::make()
@@ -260,13 +253,9 @@ class RutinaResource extends Resource
                             )
                             ->reactive()
                             ->schema([
-                                // Guardamos el número de semana pero no lo mostramos
                                 Forms\Components\Hidden::make('numero_semana'),
-
-                                // ⬇️ Reemplaza el antiguo Group por una Section colapsable
                                 Section::make('Contenido de la semana')
                                     ->schema([
-                                        // ==== DÍAS ====
                                         Forms\Components\Repeater::make('dias')
                                             ->label('Días')
                                             ->schema([
@@ -283,8 +272,6 @@ class RutinaResource extends Resource
                                                     ])
                                                     ->required()
                                                     ->default('Lunes'),
-
-                                                // ==== EJERCICIOS ====
                                                 Forms\Components\Repeater::make('ejercicios')
                                                     ->label('Ejercicios')
                                                     ->schema([
@@ -368,7 +355,6 @@ class RutinaResource extends Resource
                                     ->collapsed(function (\Filament\Forms\Get $get, ?array $state) {
                                         $activa = (int) ($get('../../semana_activa') ?? 1);
                                         $n = (int) ($state['numero_semana'] ?? 0);
-                                        // Colapsa todas las que NO son la activa (pero no las oculta)
                                         return $n !== $activa;
                                     }),
                             ])
@@ -402,13 +388,13 @@ class RutinaResource extends Resource
                     ->label('Atleta')
                     ->sortable()
                     ->searchable()
-                    ->visible(fn() => auth()->user()->hasRole('entrenador')), // Solo visible para entrenadores
+                    ->visible(fn() => auth()->user()->hasRole('entrenador')), 
 
                 Tables\Columns\TextColumn::make('entrenador.name')
                     ->label('Entrenador')
                     ->sortable()
                     ->searchable()
-                    ->visible(fn() => auth()->user()->hasRole('atleta')), // Solo visible para atletas
+                    ->visible(fn() => auth()->user()->hasRole('atleta')), 
 
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()
@@ -493,7 +479,7 @@ class RutinaResource extends Resource
     }
     protected static function normalizarSemanas(array $semanas): array
     {
-        $semanas = array_values($semanas); // quitar huecos de índices
+        $semanas = array_values($semanas); 
         $resultado = [];
         $n = 1;
 
@@ -503,8 +489,6 @@ class RutinaResource extends Resource
 
             foreach ($semana['dias'] as &$dia) {
                 $dia['ejercicios'] = array_values($dia['ejercicios'] ?? []);
-
-                // asegurar orden consecutivo por día
                 $orden = 1;
                 foreach ($dia['ejercicios'] as &$ej) {
                     $ej['orden'] = $orden++;

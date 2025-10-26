@@ -26,9 +26,6 @@ class EjercicioResource extends Resource
                 Forms\Components\TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
-
-                // 🔧 Ajuste para coincidir con la migración:
-                // enum('tipo', ['Fuerza', 'Cardio', 'Flexibilidad', 'Potencia'])
                 Forms\Components\Select::make('tipo')
                     ->options([
                         'Fuerza'       => 'Fuerza',
@@ -46,9 +43,7 @@ class EjercicioResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $user = Auth::user();
 
-        // Permisos básicos: usa Gate::allows() para evitar errores de análisis estático
         $canCreate     = \Illuminate\Support\Facades\Gate::allows('create_ejercicio');
         $canUpdate     = \Illuminate\Support\Facades\Gate::allows('update_ejercicio');
         $canDelete     = \Illuminate\Support\Facades\Gate::allows('delete_ejercicio');
@@ -70,7 +65,6 @@ class EjercicioResource extends Resource
                     ->searchable(),
             ])
             ->filters([
-                // Puedes añadir filtros por tipo si gustas
                 Tables\Filters\SelectFilter::make('tipo')
                     ->options([
                         'Fuerza'       => 'Fuerza',
@@ -80,7 +74,7 @@ class EjercicioResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(), // para que admin/atleta vean el detalle
+                Tables\Actions\ViewAction::make(), 
                 Tables\Actions\Action::make('progreso')
                     ->label('Progreso')
                     ->icon('heroicon-o-chart-bar')
@@ -97,18 +91,11 @@ class EjercicioResource extends Resource
                         ->visible(fn() => $canDeleteAny || $canDelete),
                 ]),
             ])
-            // 🔒 Oculta el botón "Create" si no puede crear
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->visible(fn() => $canCreate),
             ]);
     }
-
-    /**
-     * 🔎 Filtra el index para el rol "atleta":
-     *     - Si es atleta: solo ejercicios presentes en sus rutinas
-     *     - Resto: query normal
-     */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
@@ -116,8 +103,6 @@ class EjercicioResource extends Resource
         $user = Auth::user();
 
         if ($user?->hasRole('atleta')) {
-            // Si NO quieres que vea el index, podrías retornar ->whereRaw('1=0')
-            // o no darle 'view_any_ejercicio'. Si SÍ quieres que lo vea filtrado, usa:
             $query->whereIn('ejercicios.id', function ($q) use ($user) {
                 $q->select('ed.ejercicio_id')
                     ->from('ejercicios_dia as ed')

@@ -15,7 +15,6 @@ class ListVideoAnalyses extends ListRecords
 {
     protected static string $resource = VideoAnalysisResource::class;
 
-    /** Ocultamos el CreateAction y ponemos 3 acciones personalizadas */
     protected function getHeaderActions(): array
     {
         return [

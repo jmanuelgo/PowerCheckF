@@ -33,16 +33,8 @@ class CreateAtleta extends CreateRecord
 
         $password = Str::random(10);
         $this->generatedPassword = $password;
-        // Entrenador autenticado
         $authUser = Auth::user();
         $authUser = auth()->user();
-
-        // ADAPTA estas dos líneas según tu modelo:
-        // Opción 1: si el entrenador ES el User autenticado (sin tabla Entrenador)
-        // $entrenadorId = $authUser->id;
-        // $gimnasioId   = $authUser->gimnasio_id;
-
-        // Opción 2: si tienes modelo Entrenador relacionado al User
         $entrenadorId = optional($authUser->entrenador)->id;
         $gimnasioId   = optional($authUser->entrenador)->gimnasio_id;
 
@@ -76,8 +68,6 @@ class CreateAtleta extends CreateRecord
             $data['user_id']       = $user->id;
             $data['entrenador_id'] = $entrenadorId;
             $data['gimnasio_id']   = $gimnasioId;
-
-            // 3) Crear el Atleta (modelo del recurso actual)
             /** @var class-string<Model> $model */
             $model = static::getModel();
             return $model::create($data);

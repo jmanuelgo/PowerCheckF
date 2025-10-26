@@ -17,7 +17,6 @@ class GimnasioResource extends Resource
 {
     protected static ?string $model = Gimnasio::class;
 
-    // app/Filament/Resources/GimnasioResource.php
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
     public static function form(Form $form): Form
@@ -31,16 +30,16 @@ class GimnasioResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\FileUpload::make('logo')
-                    ->image() // habilita preview y limita a imágenes
-                    ->directory('gym_logos') // carpeta dentro del disco
-                    ->disk('public') // usa el disco "public"
+                    ->image() 
+                    ->directory('gym_logos') 
+                    ->disk('public') 
                     ->visibility('public')
                     ->preserveFilenames()
                     ->acceptedFileTypes(['image/*'])
-                    ->maxSize(2048) // 2 MB
+                    ->maxSize(2048) 
                     ->helperText('Sube un logo (PNG/JPG, máx. 2 MB)')
-                    ->openable()     // botón para abrir
-                    ->downloadable(), // botón para descargar
+                    ->openable()   
+                    ->downloadable(), 
                 Forms\Components\TextInput::make('celular')
                     ->maxLength(15),
             ]);

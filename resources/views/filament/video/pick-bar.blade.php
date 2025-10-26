@@ -1,6 +1,6 @@
 <x-filament-panels::page>
 
-    {{-- Pantalla de Carga (Añadido) --}}
+    {{-- Pantalla de Carga--}}
     <div id="loading-overlay" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-gray-900/80"
         style="display: none;">
         <div class="p-8 text-center bg-white shadow-2xl rounded-xl dark:bg-gray-800">

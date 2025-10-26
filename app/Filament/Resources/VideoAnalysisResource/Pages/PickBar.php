@@ -17,6 +17,6 @@ class PickBar extends Page
 
     public function mount(VideoAnalysis $record): void
     {
-        $this->record = $record; // <- el blade usará $record
+        $this->record = $record; 
     }
 }

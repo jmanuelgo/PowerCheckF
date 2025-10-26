@@ -46,13 +46,10 @@
         </x-filament::section>
     </div>
 
-    {{-- AQUÍ ESTÁ EL CAMBIO: Llamamos a los widgets --}}
     <div class="grid grid-cols-1 gap-6 mt-6 lg:grid-cols-2">
         @livewire(\App\Filament\Widgets\PesoProgresoChart::class, ['record' => $this->record])
         @livewire(\App\Filament\Widgets\RepsProgresoChart::class, ['record' => $this->record])
     </div>
-
-    {{-- Historial General de Series --}}
     <div class="mt-6 overflow-hidden bg-white border border-gray-200 rounded-xl dark:bg-gray-800 dark:border-gray-700">
         <div class="px-6 py-4 font-semibold bg-gray-50 dark:bg-gray-700/50">Historial General de Series</div>
         <div class="p-6 overflow-x-auto">

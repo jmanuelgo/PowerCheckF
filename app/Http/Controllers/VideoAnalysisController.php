@@ -20,7 +20,6 @@ class VideoAnalysisController extends Controller
             ->baseUrl(config('services.video_api.base'));
     }
 
-    // Opcional: formulario inicial si usas una vista fuera de Filament
     public function showUploadForm(string $movement)
     {
         abort_unless(in_array($movement, ['squat', 'bench', 'deadlift']), 404);
@@ -108,7 +107,6 @@ class VideoAnalysisController extends Controller
                 'squat_analysis_id' => $squatAnalysis->id,
                 'rep_number'        => $repData['rep'],
                 'min_knee_angle'    => $repData['min_angle_deg'],
-                // ... resto de los campos de squat
                 'path_length_px'    => $repData['path_len_px'] ?? 0.0,
                 'vertical_range_px' => $repData['vert_range_px'] ?? 0.0,
                 'excess_path_px'    => $repData['excess_path_px'] ?? 0.0,
@@ -149,7 +147,7 @@ class VideoAnalysisController extends Controller
         return count($vals) ? round(array_sum($vals) / count($vals), 2) : null;
     }
 
-    // --------- Upload (crea BD y decide a dónde ir) -----------
+    // Upload inicial
     public function upload(Request $req)
     {
         @set_time_limit(0);
@@ -160,15 +158,12 @@ class VideoAnalysisController extends Controller
             'video'      => ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:70000'],
             'bar_manual' => ['nullable'],
         ]);
-
-        // 1) registro inicial
         $va = VideoAnalysis::create([
             'user_id'  => Auth::id(),
             'movement' => $req->movement,
             'status'   => 'processing',
         ]);
 
-        // 2) subir a API
         $file = $req->file('video');
         $resp = $this->api()
             ->attach('video', fopen($file->getRealPath(), 'r'), $file->getClientOriginalName())
@@ -182,15 +177,12 @@ class VideoAnalysisController extends Controller
         }
 
         $data = $resp->json();
-
-        // 3) actualizar registro
         $va->update([
             'status'     => $data['status'] ?? 'processing',
             'job_id'     => $data['job_id'] ?? null,
             'frame_url'  => $data['frame_url'] ?? null,
         ]);
 
-        // a) pick requerido
         if (in_array($va->status, ['need_pick', 'need_pick_full'])) {
             return redirect(VideoAnalysisResource::getUrl(
                 $va->status === 'need_pick_full' ? 'pick-full' : 'pick-bar',
@@ -198,18 +190,12 @@ class VideoAnalysisController extends Controller
             ));
         }
 
-        // b) done automático (sin barra)
         if (($data['status'] ?? null) === 'done') {
-            // REEMPLAZA el bloque $va->update([...]) con esto:
             $this->handleSuccessfulAnalysis($va, $data);
             return redirect(VideoAnalysisResource::getUrl('result', ['record' => $va]));
         }
-
-        // fallback
         return redirect(VideoAnalysisResource::getUrl('index'));
     }
-
-    // --------- Iniciar manual completo (devuelve need_pick_full) -----------
     public function startManual(Request $req)
     {
         $req->validate(['job_id' => 'required']);
@@ -225,15 +211,13 @@ class VideoAnalysisController extends Controller
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
 
-        $data = $resp->json(); // need_pick_full
+        $data = $resp->json(); 
         if ($va) {
             $va->update(['status' => 'need_pick_full', 'frame_url' => $data['frame_url'] ?? null]);
         }
 
         return redirect(VideoAnalysisResource::getUrl('pick-full', ['record' => $va]));
     }
-
-    // --------- AUTO con pick de barra (usa /api/process_manual) -----------
     public function processManual(Request $req)
     {
         @set_time_limit(0);
@@ -247,26 +231,18 @@ class VideoAnalysisController extends Controller
         ]);
 
         $resp = $this->api()->asForm()->post('/api/process_manual', $req->only('job_id', 'cx', 'cy', 'r'));
-        // Si prefieres el alias nuevo:
-        // $resp = $this->api()->asForm()->post('/api/process_auto', $req->only('job_id','cx','cy','r'));
-        // 1. Buscamos el análisis por job_id para saber qué ejercicio es
         $va = VideoAnalysis::where('job_id', $req->job_id)->firstOrFail();
-
-        // 2. Decidimos el endpoint basado en el 'movement' guardado
         if ($va->movement === 'deadlift') {
             $endpoint = '/api/process_deadlift';
         } else {
-            // Para 'squat' y cualquier otro caso, usamos el endpoint manual general
             $endpoint = '/api/process_manual';
         }
-
-        // 3. Hacemos la llamada al endpoint correcto
         $resp = $this->api()
             ->asForm()
             ->post($endpoint, $req->only('job_id', 'cx', 'cy', 'r'));
 
         if (!$resp->ok()) {
-            $va->update(['status' => 'failed']); // Modificado para usar la instancia que ya tienes
+            $va->update(['status' => 'failed']); 
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
 
@@ -275,8 +251,6 @@ class VideoAnalysisController extends Controller
 
         return redirect(VideoAnalysisResource::getUrl('result', ['record' => $va]));
     }
-
-    // --------- Manual completo (puntos cuerpo + barra) -----------
     public function processManualFull(Request $req)
     {
         @set_time_limit(0);
@@ -284,7 +258,6 @@ class VideoAnalysisController extends Controller
 
         $req->validate([
             'job_id' => 'required',
-            // ... resto de las validaciones
             'r'  => 'required|integer|min:3',
         ]);
 
@@ -295,49 +268,36 @@ class VideoAnalysisController extends Controller
             VideoAnalysis::where('job_id', $req->job_id)->update(['status' => 'failed']);
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
-
-        // --- AJUSTE AQUÍ ---
         $d  = $resp->json();
-        // Añade esta línea para buscar el registro antes de pasarlo a la función
         $va = VideoAnalysis::where('job_id', $req->job_id)->firstOrFail();
 
         $this->handleSuccessfulAnalysis($va, $d);
 
         return redirect(VideoAnalysisResource::getUrl('result', ['record' => $va]));
     }
-
-    // --------- Proxy descarga -----------
     public function proxyDownload(Request $req)
     {
         $url = $req->query('url');
         if (! $url) {
             abort(400, 'Missing url');
         }
-
-        // Seguridad básica: evitar SSRF. Allowlist de hosts (ajusta según tu entorno).
         $allowedHosts = [
-            parse_url(config('services.video_api.base'), PHP_URL_HOST), // API interna
+            parse_url(config('services.video_api.base'), PHP_URL_HOST),
             '127.0.0.1',
             'localhost',
-            // añade dominios externos si confías en ellos, p.ej. 'mi-dominio.com'
+            // Se puede añadir dominios externos
         ];
         $host = parse_url($url, PHP_URL_HOST);
         if (! $host || ! in_array($host, $allowedHosts, true)) {
             abort(403, 'Host no permitido');
         }
-
-        // Descargar el archivo (usar Http::get para URLs absolutas)
         $response = \Illuminate\Support\Facades\Http::timeout(config('services.video_api.timeout', 30))->get($url);
 
         if (! $response->ok()) {
             abort(502, 'No se pudo descargar el archivo remoto');
         }
-
-        // Intentar derivar un filename desde la URL o usar uno por defecto:
         $path = parse_url($url, PHP_URL_PATH);
         $filename = basename($path) ?: 'resultado.mp4';
-
-        // Responder como streamed response con headers adecuados
         return response()->streamDownload(function () use ($response) {
             echo $response->body();
         }, $filename, [
