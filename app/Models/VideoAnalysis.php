@@ -47,4 +47,8 @@ class VideoAnalysis extends Model
     {
         return $this->hasOne(DeadliftAnalysis::class);
     }
+    public function benchPressAnalysis(): HasOne
+    {
+        return $this->hasOne(BenchPressAnalysis::class);
+    }
 }

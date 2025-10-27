@@ -11,6 +11,9 @@ use App\Models\SquatRepMetric;
 use App\Models\DeadliftAnalysis;
 use App\Models\DeadliftRepMetric;
 use App\Filament\Resources\VideoAnalysisResource;
+use App\Models\BenchPressAnalysis;
+use App\Models\BenchPressRepMetric;
+
 
 class VideoAnalysisController extends Controller
 {
@@ -96,6 +99,39 @@ class VideoAnalysisController extends Controller
 
             if (!empty($repDataToInsert)) {
                 DeadliftRepMetric::insert($repDataToInsert);
+            }
+        } elseif ($va->movement === 'bench') {
+            $result = $apiData['result'];
+            $summary = $result['summary'];
+            $repMetrics = $result['metrics'] ?? [];
+
+            $va->benchPressAnalysis()->delete(); // Limpiamos análisis previos
+
+            $benchAnalysis = $va->benchPressAnalysis()->create([
+                'total_reps'      => $summary['repeticiones_totales'] ?? 0,
+                'avg_score'       => $summary['score_promedio'] ?? null,
+                'best_rep_num'    => $summary['mejor_rep_num'] ?? null,
+                'best_rep_score'  => $summary['mejor_rep_score'] ?? null,
+                'worst_rep_num'   => $summary['peor_rep_num'] ?? null,
+                'worst_rep_score' => $summary['peor_rep_score'] ?? null,
+            ]);
+
+            $repDataToInsert = [];
+            foreach ($repMetrics as $repData) {
+                $repDataToInsert[] = [
+                    'bench_press_analysis_id' => $benchAnalysis->id,
+                    'rep_number'              => $repData['rep_num'],
+                    'score_general'           => $repData['score_general'] ?? null,
+                    'curvatura_j_px'          => $repData['curvatura_j_px'] ?? null,
+                    'rectitud_bajada_rmse'    => $repData['rectitud_bajada_rmse'] ?? null,
+                    'observacion'             => $repData['observacion'] ?? null,
+                    'created_at'              => now(),
+                    'updated_at'              => now(),
+                ];
+            }
+
+            if (!empty($repDataToInsert)) {
+                \App\Models\BenchPressRepMetric::insert($repDataToInsert);
             }
         }
     }
@@ -211,13 +247,15 @@ class VideoAnalysisController extends Controller
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
 
-        $data = $resp->json(); 
+        $data = $resp->json();
         if ($va) {
             $va->update(['status' => 'need_pick_full', 'frame_url' => $data['frame_url'] ?? null]);
         }
 
         return redirect(VideoAnalysisResource::getUrl('pick-full', ['record' => $va]));
     }
+    // En VideoAnalysisController.php
+
     public function processManual(Request $req)
     {
         @set_time_limit(0);
@@ -230,19 +268,24 @@ class VideoAnalysisController extends Controller
             'r'      => 'required|integer|min:3',
         ]);
 
-        $resp = $this->api()->asForm()->post('/api/process_manual', $req->only('job_id', 'cx', 'cy', 'r'));
         $va = VideoAnalysis::where('job_id', $req->job_id)->firstOrFail();
+
+        // 1. Determinamos el endpoint correcto
         if ($va->movement === 'deadlift') {
             $endpoint = '/api/process_deadlift';
+        } elseif ($va->movement === 'bench') {
+            $endpoint = '/api/process_bench_press';
         } else {
             $endpoint = '/api/process_manual';
         }
+
+        // 2. Hacemos UNA SOLA llamada a la API con el endpoint correcto
         $resp = $this->api()
             ->asForm()
             ->post($endpoint, $req->only('job_id', 'cx', 'cy', 'r'));
 
         if (!$resp->ok()) {
-            $va->update(['status' => 'failed']); 
+            $va->update(['status' => 'failed']);
             return back()->withErrors(['api' => $resp->json('error') ?? 'Error'])->withInput();
         }
 

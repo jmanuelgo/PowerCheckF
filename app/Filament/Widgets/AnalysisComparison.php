@@ -6,6 +6,8 @@ use App\Models\VideoAnalysis;
 use Filament\Widgets\Widget;
 use App\Models\SquatRepMetric;
 use App\Models\DeadliftRepMetric;
+use App\Models\BenchPressRepMetric;
+
 
 class AnalysisComparison extends Widget
 {
@@ -14,9 +16,8 @@ class AnalysisComparison extends Widget
     // Para recibir el registro del análisis
     public ?VideoAnalysis $record = null;
 
-    // Propiedades para pasar a la vista
-    public ?SquatRepMetric $bestRepMetric = null;
-    public ?SquatRepMetric $worstRepMetric = null;
+    public ?array $bestRepMetric = null;
+    public ?array $worstRepMetric = null;
 
     public function mount(): void
     {
@@ -33,6 +34,15 @@ class AnalysisComparison extends Widget
         } elseif ($this->record->movement === 'deadlift') {
             $analysisSummary = $this->record->deadliftAnalysis;
             $metricModelClass = DeadliftRepMetric::class;
+        } elseif ($this->record->movement === 'bench') {
+            $analysisSummary = $this->record->benchPressAnalysis;
+            $metricModelClass = BenchPressRepMetric::class;
+        }
+        $bestRepKey = 'best_rep_num';
+        $worstRepKey = 'worst_rep_num';
+        if ($this->record->movement === 'bench') {
+            $bestRepKey = 'best_rep_num';
+            $worstRepKey = 'worst_rep_num';
         }
 
         if ($analysisSummary && $analysisSummary->best_rep_num && $analysisSummary->worst_rep_num) {
