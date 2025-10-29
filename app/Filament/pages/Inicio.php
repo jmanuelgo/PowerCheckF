@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Filament\Widgets\AtletasDelEntrenadorStats;
 use App\Filament\Pages\MiRutinaDeHoy;
+use App\Filament\Widgets\RutinasRecientesTable;
 
 
 
@@ -50,6 +51,7 @@ class Inicio extends Dashboard
         if ($user->hasRole('entrenador')) {
             return [
                 \App\Filament\Widgets\AtletasDelEntrenadorStats::class,
+                RutinasRecientesTable::class,
             ];
         }
 
