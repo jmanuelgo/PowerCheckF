@@ -48,6 +48,11 @@
                                         <span class="ml-2 text-green-400">✅</span>
                                     @endif
                                 </h3>
+                                @if (!empty($ej['descripcion']))
+                                    <p class="mt-1 text-sm text-gray-400">
+                                        {{ $ej['descripcion'] }}
+                                    </p>
+                                @endif
                                 <div class="flex items-center gap-2">
                                     <span class="px-2 py-1 text-xs font-medium text-blue-300 bg-blue-900 rounded">
                                         {{ count($ej['series']) }} {{ count($ej['series']) > 1 ? 'series' : 'serie' }}

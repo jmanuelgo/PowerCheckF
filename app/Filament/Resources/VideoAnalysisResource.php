@@ -22,15 +22,25 @@ class VideoAnalysisResource extends Resource
                 Tables\Columns\TextColumn::make('movement')->label('Ejercicio')->badge()
                     ->formatStateUsing(fn(string $state) => ['squat' => 'Sentadilla', 'bench' => 'Press banca', 'deadlift' => 'Peso muerto'][$state] ?? $state),
                 Tables\Columns\TextColumn::make('analyzed_at')->label('Fecha análisis')->dateTime('Y-m-d H:i')->sortable(),
+                Tables\Columns\TextColumn::make('weight')->label('Peso (kg)')->sortable(),
                 Tables\Columns\TextColumn::make('efficiency_pct')->label('Eficiencia (%)')
+                    ->sortable()
                     ->formatStateUsing(fn($state) => $state !== null ? number_format((float)$state, 2) : '—')
                     ->color(fn($state) => $state === null ? null : ((float)$state >= 90 ? 'success' : ((float)$state >= 80 ? 'warning' : 'danger'))),
-                Tables\Columns\TextColumn::make('created_at')->label('Creado')->since()->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('movement')
+                    ->label('Ejercicio')
+                    ->options([
+                        'squat' => 'Sentadilla',
+                        'bench' => 'Press banca',
+                        'deadlift' => 'Peso muerto',
+                    ])
             ])
             ->actions([
                 Tables\Actions\Action::make('ver_detalles')
                     ->label('Ver Detalles')
-                    ->icon('heroicon-o-document-magnifying-glass') 
+                    ->icon('heroicon-o-document-magnifying-glass')
                     ->url(fn(VideoAnalysis $record): string => static::getUrl('result', ['record' => $record])),
                 Tables\Actions\Action::make('descargar')
                     ->label('Descargar')->icon('heroicon-o-arrow-down-tray')

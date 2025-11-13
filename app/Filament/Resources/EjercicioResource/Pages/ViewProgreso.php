@@ -6,7 +6,12 @@ use App\Filament\Resources\EjercicioResource;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
+use Filament\Actions\Action;
+use Illuminate\Support\Str;
+
+
 
 class ViewProgreso extends ViewRecord
 {
@@ -47,7 +52,7 @@ class ViewProgreso extends ViewRecord
         $desde30dias = now()->subDays(30)->startOfDay();
         $baseQuery = $this->getBaseQuery();
 
-        // --- Cálculos para las tarjetas de estadísticas ---
+
         $datosStats = (clone $baseQuery)
             ->selectRaw('
                 COUNT(srz.id) as total_sets_historico,
@@ -55,8 +60,6 @@ class ViewProgreso extends ViewRecord
                 MAX(COALESCE(srz.peso_realizado, 0) * (1 + COALESCE(srz.repeticiones_realizadas, 0) / 30.0)) as rm_mejor
             ', [$desde30dias])
             ->first();
-
-        // --- Adherencia ---
         $setsRealizadas30d = (clone $baseQuery)->where('srz.fecha_realizacion', '>=', $desde30dias)->count();
 
         $setsPlaneadas30d = DB::table('series_ejercicio as se')
@@ -81,7 +84,6 @@ class ViewProgreso extends ViewRecord
             'sets_realizadas'   => $setsRealizadas30d,
         ];
 
-        // --- Datos para los gráficos (histórico) ---
         $progreso = (clone $baseQuery)
             ->selectRaw('DATE(srz.fecha_realizacion) as fecha, MAX(srz.peso_realizado) as max_peso, MAX(srz.repeticiones_realizadas) as max_reps')
             ->groupBy('fecha')
@@ -130,8 +132,39 @@ class ViewProgreso extends ViewRecord
     }
 
 
-    protected function getHeaderActions(): array
-    {
-        return [];
-    }
+protected function getHeaderActions(): array
+{
+    return [
+        Action::make('downloadPdf')
+            ->label('Descargar Reporte PDF')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('primary')
+            ->action(function () {
+                $ejercicio = $this->record;
+                $stats = $this->stats;
+                $historial = $this->historial;
+                $progreso = $this->getBaseQuery()
+                   ->selectRaw('DATE(srz.fecha_realizacion) as fecha, MAX(srz.peso_realizado) as max_peso, MAX(srz.repeticiones_realizadas) as max_reps')
+                   ->groupBy('fecha')
+                   ->orderBy('fecha', 'asc')
+                   ->get()
+                   ->map(function($item) {
+                       $item->fecha = Carbon::parse($item->fecha);
+                       return (array)$item;
+                   })
+                   ->toArray();
+
+                $pdf = Pdf::loadView('pdf.progreso-report', compact(
+                    'ejercicio',
+                    'stats',
+                    'historial',
+                    'progreso'
+                 ));
+                 $filename = 'reporte-progreso-' . Str::slug($ejercicio->nombre) . '-' . now()->format('Ymd') . '.pdf';
+                 return response()->streamDownload(function () use ($pdf) {
+                     echo $pdf->output();
+                 }, $filename);
+            }),
+    ];
+}
 }

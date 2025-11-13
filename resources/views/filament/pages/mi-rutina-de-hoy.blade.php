@@ -69,6 +69,11 @@
                                             <h5 class="text-lg font-bold text-gray-800">
                                                 {{ $ejercicioDia->orden }}. {{ $ejercicioDia->ejercicio->nombre }}
                                             </h5>
+                                           @if ($ejercicioDia->ejercicio->descripcion)
+                                                <p class="mt-1 text-sm text-gray-600">
+                                                {{ $ejercicioDia->ejercicio->descripcion }}
+                                                </p>
+                                            @endif
                                             @if ($ejercicioDia->notas)
                                                 <p class="mt-1 text-sm italic text-gray-600">📝
                                                     {{ $ejercicioDia->notas }}</p>

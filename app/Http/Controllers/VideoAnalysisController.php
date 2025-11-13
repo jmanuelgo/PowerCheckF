@@ -40,14 +40,10 @@ class VideoAnalysisController extends Controller
     }
     private function handleSuccessfulAnalysis(VideoAnalysis $va, array $apiData): void
     {
-        $va->update([
-            'status'       => 'done',
-            'analyzed_at'  => now(),
-            'download_url' => $apiData['result']['download_url'] ?? null,
-            'raw_metrics'  => json_encode($apiData['result'] ?? null),
-        ]);
+        $summaryEfficiency = null;
+        $result = $apiData['result'];
+
         if ($va->movement === 'squat') {
-            $result = $apiData['result'];
             $summary = $result['summary'];
             $repMetrics = $result['metrics'] ?? [];
 
@@ -66,6 +62,9 @@ class VideoAnalysisController extends Controller
             ]);
 
             $this->saveRepMetrics($squatAnalysis, $repMetrics);
+
+            $summaryEfficiency = $squatAnalysis->avg_efficiency_pct;
+
         } elseif ($va->movement === 'deadlift') {
             $result = $apiData['result'];
             $summary = $result['summary'];
@@ -80,6 +79,7 @@ class VideoAnalysisController extends Controller
                 'avg_shoulder_bar_deviation_px' => $summary['avg_horizontal_deviation_px'] ?? null,
                 'summary_message'               => $summary['summary_message'] ?? null,
             ]);
+
             $repDataToInsert = [];
             foreach ($repMetrics as $repData) {
                 $repDataToInsert[] = [
@@ -100,12 +100,15 @@ class VideoAnalysisController extends Controller
             if (!empty($repDataToInsert)) {
                 DeadliftRepMetric::insert($repDataToInsert);
             }
+
+            $summaryEfficiency = $deadliftAnalysis->avg_efficiency_pct;
+
         } elseif ($va->movement === 'bench') {
             $result = $apiData['result'];
             $summary = $result['summary'];
             $repMetrics = $result['metrics'] ?? [];
 
-            $va->benchPressAnalysis()->delete(); // Limpiamos análisis previos
+            $va->benchPressAnalysis()->delete();
 
             $benchAnalysis = $va->benchPressAnalysis()->create([
                 'total_reps'      => $summary['repeticiones_totales'] ?? 0,
@@ -133,7 +136,18 @@ class VideoAnalysisController extends Controller
             if (!empty($repDataToInsert)) {
                 \App\Models\BenchPressRepMetric::insert($repDataToInsert);
             }
+
+
+            $summaryEfficiency = $benchAnalysis->avg_score;
         }
+
+        $va->update([
+            'status'         => 'done',
+            'analyzed_at'    => now(),
+            'download_url'   => $apiData['result']['download_url'] ?? null,
+            'raw_metrics'    => json_encode($apiData['result'] ?? null),
+            'efficiency_pct' => $summaryEfficiency,
+        ]);
     }
     private function saveRepMetrics(SquatAnalysis $squatAnalysis, array $repMetrics): void
     {
@@ -193,10 +207,12 @@ class VideoAnalysisController extends Controller
             'movement'   => 'required|in:squat,bench,deadlift',
             'video'      => ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:70000'],
             'bar_manual' => ['nullable'],
+            'weight'     => ['nullable', 'numeric', 'min:0'],
         ]);
         $va = VideoAnalysis::create([
             'user_id'  => Auth::id(),
             'movement' => $req->movement,
+            'weight'   => $req->input('weight'),
             'status'   => 'processing',
         ]);
 

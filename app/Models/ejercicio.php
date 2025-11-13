@@ -15,7 +15,7 @@ class Ejercicio extends Model
         'nombre',
         'descripcion',
         'tipo',
-        'grupo_muscular'
+        'grupo_muscular',
     ];
 
     protected $casts = [

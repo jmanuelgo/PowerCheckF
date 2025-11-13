@@ -20,9 +20,8 @@ class Inicio extends Dashboard
 
     public function getTitle(): string
     {
-        $user = Auth::user(); // 👈 así desaparece el warning del linter
+        $user = Auth::user();
 
-        // Si usas spatie/laravel-permission:
         $role = method_exists($user, 'getRoleNames')
             ? ($user->getRoleNames()->first() ?? 'Usuario')
             : 'Usuario';
@@ -56,7 +55,6 @@ class Inicio extends Dashboard
         }
 
         if ($user->hasRole('atleta')) {
-            // ⬇️ Este widget mostrará la sesión pendiente del atleta
             return [
                 \App\Filament\Widgets\RutinaPendienteDeHoyWidget::class,
             ];

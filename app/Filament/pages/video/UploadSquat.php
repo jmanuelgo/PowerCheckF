@@ -7,7 +7,7 @@ use Filament\Pages\Page;
 class UploadSquat extends Page
 {
     protected static ?string $navigationIcon = null;
-    protected static bool $shouldRegisterNavigation = false; // no aparece en el menú
+    protected static bool $shouldRegisterNavigation = false;
     protected static string $view = 'filament.video.upload';
     protected static ?string $title = 'Subir video – Sentadilla';
 

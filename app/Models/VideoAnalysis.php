@@ -15,6 +15,7 @@ class VideoAnalysis extends Model
         'user_id',
         'movement',
         'analyzed_at',
+        'weight',
         'efficiency_pct',
         'status',
         'job_id',
@@ -36,13 +37,7 @@ class VideoAnalysis extends Model
     {
         return $this->hasOne(SquatAnalysis::class);
     }
-    public function getEfficiencyPctAttribute(): ?float
-    {
-        if ($this->movement === 'squat' && $this->squatAnalysis) {
-            return $this->squatAnalysis->avg_efficiency_pct;
-        }
-        return null;
-    }
+
     public function deadliftAnalysis(): HasOne
     {
         return $this->hasOne(DeadliftAnalysis::class);

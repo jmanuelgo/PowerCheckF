@@ -1,9 +1,7 @@
 <x-filament-panels::page>
     <x-filament-panels::header :heading="'Resultados del Análisis'" :subheading="ucfirst($record->movement ?? '-') . ' — Job ' . Str::substr($record->job_id ?? '-', 0, 8)" />
 
-    {{-- SECCIÓN DE TARJETAS DE RESUMEN --}}
     <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
-        {{-- 1. Tarjeta de Repeticiones (Funciona para todos) --}}
         <div
             class="p-4 bg-white shadow-sm rounded-xl fi-section ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             <h3 class="text-base font-semibold fi-section-header-heading text-gray-950 dark:text-white">Repeticiones</h3>
@@ -12,7 +10,6 @@
             </div>
         </div>
 
-        {{-- 2. Tarjeta de Eficiencia/Score Promedio (Funciona para todos) --}}
         <div
             class="p-4 bg-white shadow-sm rounded-xl fi-section ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             <h3 class="text-base font-semibold fi-section-header-heading text-gray-950 dark:text-white">
@@ -23,7 +20,6 @@
             </div>
         </div>
 
-        {{-- 3. Tarjeta Específica del Movimiento --}}
         <div
             class="p-4 bg-white shadow-sm rounded-xl fi-section ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             @if ($record->movement === 'squat')
@@ -40,7 +36,7 @@
                     {{ data_get($summary, 'avg_shoulder_bar_deviation_px') ? number_format(data_get($summary, 'avg_shoulder_bar_deviation_px'), 1) . ' px' : '—' }}
                 </div>
                 <p class="mt-2 text-sm text-gray-500">Menor desviación indica mejor técnica.</p>
-                {{-- INICIO DE LA MODIFICACIÓN --}}
+
             @elseif ($record->movement === 'bench')
                 <h3 class="text-base font-semibold fi-section-header-heading text-gray-950 dark:text-white">Mejor
                     Repetición</h3>
@@ -49,11 +45,11 @@
                 </div>
                 <p class="mt-2 text-sm text-gray-500">Score de la repetición con mejor técnica.</p>
             @endif
-            {{-- FIN DE LA MODIFICACIÓN --}}
+
         </div>
     </div>
 
-    {{-- Botón de Descarga --}}
+
     <div class="flex flex-wrap gap-3 mb-6">
         @if ($record->download_url)
             <x-filament::button tag="a"
@@ -63,22 +59,20 @@
             </x-filament::button>
         @endif
     </div>
+    <div class="grid grid-cols-1 gap-6 my-6 lg:grid-cols-2">
+        @if (in_array($record->movement, ['squat', 'deadlift']))
+                <div>@livewire(\App\Filament\Widgets\EfficiencyPerRepChart::class, ['record' => $record])</div>
+                <div>@livewire(\App\Filament\Widgets\AnalysisComparison::class, ['record' => $record])</div>
 
-    {{-- SECCIÓN DE WIDGETS (GRÁFICOS) --}}
-    {{-- INICIO DE LA MODIFICACIÓN: Añadimos 'bench' al array --}}
-    @if (in_array($record->movement, ['squat', 'deadlift', 'bench']))
-        <div class="grid grid-cols-1 gap-6 my-6 lg:grid-cols-2">
-            <div>@livewire(\App\Filament\Widgets\EfficiencyPerRepChart::class, ['record' => $record])</div>
-            <div>@livewire(\App\Filament\Widgets\AnalysisComparison::class, ['record' => $record])</div>
-        </div>
-    @endif
-    {{-- FIN DE LA MODIFICACIÓN --}}
-
-    {{-- SECCIÓN DE TABLA DE MÉTRICAS --}}
+        @elseif ($record->movement =='bench')
+                <div>@livewire(\App\Filament\Widgets\JCurvePerRepChart::class, ['record' => $record])</div>
+                <div>@livewire(\App\Filament\Widgets\AnalysisComparison::class, ['record' => $record])</div>
+        @endif
+    </div>
     @if (!empty($metrics))
         <x-filament::section class="mt-6">
             <div class="overflow-x-auto">
-                {{-- INICIO DE LA MODIFICACIÓN: Tabla para Squat/Deadlift --}}
+
                 @if (in_array($record->movement, ['squat', 'deadlift']))
                     <table class="min-w-full text-sm fi-table">
                         <thead class="bg-gray-500/10">
@@ -128,7 +122,6 @@
                         </tbody>
                     </table>
 
-                    {{-- Nueva Tabla para Bench Press --}}
                 @elseif($record->movement === 'bench')
                     <table class="min-w-full text-sm fi-table">
                         <thead class="bg-gray-500/10">
@@ -160,7 +153,6 @@
                         </tbody>
                     </table>
                 @endif
-                {{-- FIN DE LA MODIFICACIÓN --}}
             </div>
         </x-filament::section>
     @endif

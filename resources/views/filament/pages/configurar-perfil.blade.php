@@ -9,8 +9,6 @@
             {{ $this->getForm('formEntrenador') }}
         </div>
     @endif
-
-    {{-atleta --}}
     @if (auth()->user()?->hasRole('atleta'))
         <div class="mt-6">
             {{ $this->getForm('formAtleta') }}

@@ -10,11 +10,12 @@ use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
+use App\Models\SerieEjercicio;
 
 class RutinaPendienteDeHoyWidget extends Widget
 {
     protected static string $view = 'filament.widgets.rutina-pendiente-de-hoy-widget';
-    protected int | string | array $columnSpan = 'full'; // Hacer que ocupe todo el ancho
+    protected int | string | array $columnSpan = 'full';
 
     public ?Rutina $rutina = null;
     public ?int $semanaNum = null;
@@ -106,8 +107,9 @@ class RutinaPendienteDeHoyWidget extends Widget
                 'id' => $ej->id,
                 'orden' => $ej->orden,
                 'nombre' => $ej->ejercicio->nombre ?? '—',
+                'descripcion' => $ej->ejercicio->descripcion,
                 'series' => $ej->seriesEjercicio->map(fn($s) => [
-                    'id' => $s->id, // << ID DE LA SERIE AÑADIDO
+                    'id' => $s->id,
                     'n' => $s->numero_serie,
                     'reps' => $s->repeticiones_objetivo,
                     'peso' => $s->peso_objetivo,
@@ -146,38 +148,46 @@ class RutinaPendienteDeHoyWidget extends Widget
         $this->dispatch('rutina-actualizada');
     }
 
-    public function guardarSerie($serieId)
-    {
-        $repeticiones = $this->repeticiones[$serieId] ?? 0;
-        $peso = $this->peso[$serieId] ?? 0;
+public function guardarSerie($serieId)
+{
+    $reps_input = $this->repeticiones[$serieId] ?? null;
+    $peso_input = $this->peso[$serieId] ?? null;
 
-        if ($repeticiones <= 0) {
-            Notification::make()->title('Ingresa las repeticiones realizadas.')->danger()->send();
-            return;
-        }
-
-        $serieEjercicio = \App\Models\SerieEjercicio::find($serieId);
-        $ejercicioDiaId = $serieEjercicio->ejercicio_dia_id;
-
-        $ejercicioCompletado = EjercicioCompletado::firstOrCreate(
-            ['ejercicio_dia_id' => $ejercicioDiaId]
-        );
-
-        SerieRealizada::updateOrCreate(
-            ['serie_ejercicio_id' => $serieId, 'ejercicio_completado_id' => $ejercicioCompletado->id],
-            [
-                'repeticiones_realizadas' => $repeticiones,
-                'peso_realizado' => $peso,
-                'completada' => true,
-                'fecha_realizacion' => now()
-            ]
-        );
-
-        unset($this->repeticiones[$serieId], $this->peso[$serieId]);
-        $this->dispatch('rutina-actualizada'); // Refresca los datos
-
-        Notification::make()->title('Serie registrada correctamente')->success()->send();
+    if (($reps_input !== null && $reps_input !== '') && !is_numeric($reps_input)) {
+        Notification::make()->title('Las repeticiones deben ser un número.')->danger()->send();
+        return;
     }
+
+    if (($peso_input !== null && $peso_input !== '') && !is_numeric($peso_input)) {
+        Notification::make()->title('El peso debe ser un número.')->danger()->send();
+        return;
+    }
+
+    $repeticiones = (int) $reps_input;
+    $peso = (float) $peso_input;
+
+    $serieEjercicio = SerieEjercicio::find($serieId);
+    $ejercicioDiaId = $serieEjercicio->ejercicio_dia_id;
+
+    $ejercicioCompletado = EjercicioCompletado::firstOrCreate(
+        ['ejercicio_dia_id' => $ejercicioDiaId]
+    );
+
+    SerieRealizada::updateOrCreate(
+        ['serie_ejercicio_id' => $serieId, 'ejercicio_completado_id' => $ejercicioCompletado->id],
+        [
+            'repeticiones_realizadas' => $repeticiones,
+            'peso_realizado' => $peso,
+            'completada' => true,
+            'fecha_realizacion' => now()
+        ]
+    );
+
+    unset($this->repeticiones[$serieId], $this->peso[$serieId]);
+    $this->dispatch('rutina-actualizada');
+
+    Notification::make()->title('Serie registrada correctamente')->success()->send();
+}
 
     public function editarSerie($serieId)
     {

@@ -15,17 +15,17 @@ return new class extends Migration
             $t->id();
             $t->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            // Lo que te interesa mostrar:
-            $t->enum('movement', ['squat', 'bench', 'deadlift']);      // ejercicio
-            $t->timestamp('analyzed_at')->nullable();                 // fecha análisis (cuando termina)
-            $t->decimal('efficiency_pct', 6, 2)->nullable();          // eficiencia del recorrido (promedio)
 
-            // Campos mínimos para completar el flujo con la API:
-            $t->string('status')->default('processing');              // processing|need_pick|need_pick_full|done|failed
+            $t->enum('movement', ['squat', 'bench', 'deadlift']);
+            $t->timestamp('analyzed_at')->nullable();
+            $t->decimal('efficiency_pct', 6, 2)->nullable();
+
+
+            $t->string('status')->default('processing');
             $t->string('job_id')->nullable();
             $t->string('download_url')->nullable();
-            $t->string('frame_url')->nullable();                      // frame para “pick”
-            $t->json('raw_metrics')->nullable();                      // guardar el JSON crudo (opcional)
+            $t->string('frame_url')->nullable();
+            $t->json('raw_metrics')->nullable();
 
             $t->timestamps();
         });
