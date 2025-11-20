@@ -59,7 +59,6 @@ public static function table(Table $table): Table
                 }
                 $query->where('status', 'done');
             })
-            // --- FIN DE LA LÓGICA CORREGIDA ---
 
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')

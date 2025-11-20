@@ -2,14 +2,9 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\entrenador;
+use App\Filament\Resources\RutinaResource;
 use App\Models\DiaEntrenamiento;
-use App\Models\atleta;
-use App\Models\User;
-use App\Models\SemanaRutina;
-use App\Models\Rutina;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,46 +12,79 @@ use Illuminate\Support\Facades\Auth;
 
 class RutinasRecientesTable extends BaseWidget
 {
-    protected static ?string $heading = 'Últimas Sesiones Completadas';
-    protected static ?int $sort = 4;
-    protected int | string | array $columnSpan = 6;
+    protected static ?int $sort = 2;
 
+    protected int|string|array $columnSpan = 'full';
+
+    protected static ?string $heading = 'Última Rutinas Realizadas';
 
     public function table(Table $table): Table
     {
         return $table
-            ->query(function (): Builder {
-                $entrenador = entrenador::where('user_id', Auth::id())->first();
+            ->query(
+                DiaEntrenamiento::query()
+                    ->withMax('ejerciciosCompletados', 'fecha_completado')
+                    ->with(['semanaRutina.rutina.atleta.user'])
 
-                if (!$entrenador) {
-                    return DiaEntrenamiento::query()->whereRaw('1 = 0'); // Query vacía
-                }
-
-                return DiaEntrenamiento::query()
-                    ->whereHas('semanarutina.rutina.atleta', function (Builder $query) use ($entrenador) {
-                        $query->where('entrenador_id', $entrenador->id);
+                    ->whereHas('ejerciciosCompletados', function (Builder $query) {
+                        $query->where('completado', true);
                     })
-                    ->whereNotNull('fecha_completado')
-                    ->orderBy('fecha_completado', 'desc')
-                    ->limit(5);
-            })
+
+                    ->whereHas('semanaRutina.rutina', function (Builder $query) {
+                        $query->where('entrenador_id', Auth::id());
+                    })
+
+                    ->orderByDesc('ejercicios_completados_max_fecha_completado')
+            )
             ->columns([
-                TextColumn::make('atleta.user.name')
+                Tables\Columns\TextColumn::make('semanaRutina.rutina.atleta.user.name')
                     ->label('Atleta')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('semana_rutina.rutina.nombre')
+                    ->description(fn (DiaEntrenamiento $record) => $record->semanaRutina->rutina->atleta->user->apellidos ?? '')
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('semanaRutina.rutina.nombre')
                     ->label('Rutina')
-                    ->limit(30)
-                    ->tooltip(fn($record): string => $record->semana_rutina?->rutina?->nombre ?? 'N/A'),
-                TextColumn::make('dia_semana')
-                    ->label('Día'),
-                TextColumn::make('fecha_completado')
-                    ->label('Fecha Completado')
-                    ->dateTime('d/m/Y H:i')
+                    ->description(fn (DiaEntrenamiento $record) => 'Semana '.$record->semanaRutina->numero_semana.' - '.$record->dia_semana),
+
+                Tables\Columns\TextColumn::make('ejercicios_completados_max_fecha_completado')
+                    ->label('Fecha realizada')
+                    ->dateTime('d M Y, H:i')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('progreso_calculado')
+                    ->label('Efectividad')
+                    ->state(function (DiaEntrenamiento $record) {
+
+                        $ejercicios = $record->ejerciciosDia()
+                            ->with(['series.seriesRealizadas'])
+                            ->get();
+
+                        $totalRepsObjetivo = 0;
+                        $totalRepsRealizadas = 0;
+
+                        foreach ($ejercicios as $ejercicioDia) {
+                            foreach ($ejercicioDia->series as $seriePlanificada) {
+
+                                $totalRepsObjetivo += $seriePlanificada->repeticiones_objetivo;
+                                $totalRepsRealizadas += $seriePlanificada->seriesRealizadas->sum('repeticiones_realizadas');
+                            }
+                        }
+                        if ($totalRepsObjetivo == 0) {
+                            return '0%';
+                        }
+
+                        $porcentaje = ($totalRepsRealizadas / $totalRepsObjetivo) * 100;
+
+                        return ($porcentaje > 100 ? '100' : round($porcentaje)).'%';
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match (true) {
+                        (int) $state >= 90 => 'success',
+                        (int) $state >= 60 => 'warning',
+                        default => 'danger',
+                    }),
             ])
-            ->emptyStateHeading('No hay sesiones completadas recientemente')
-            ->paginated(false);
+            ->recordUrl(
+                fn (DiaEntrenamiento $record): string => RutinaResource::getUrl('view', ['record' => $record->semanaRutina->rutina_id]));
     }
 }

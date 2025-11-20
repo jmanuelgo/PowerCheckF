@@ -3,26 +3,28 @@
 namespace App\Filament\Resources\RutinaResource\Pages;
 
 use App\Filament\Resources\RutinaResource;
-use App\Models\Rutina;
 use App\Models\EjercicioCompletado;
 use App\Models\SerieRealizada;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ViewRecord;
 
 class ViewRutina extends ViewRecord
 {
     protected static string $resource = RutinaResource::class;
+
     protected static string $view = 'filament.resources.rutina-resource.pages.view-rutina';
 
     public $repeticiones = [];
+
     public $peso = [];
+
     public $ejerciciosCompletados = [];
 
     protected function getHeaderActions(): array
     {
         return [
             \Filament\Actions\EditAction::make()
-                ->visible(fn() => auth()->user()->hasRole('entrenador')),
+                ->visible(fn () => auth()->user()->hasRole('entrenador')),
         ];
     }
 
@@ -32,13 +34,13 @@ class ViewRutina extends ViewRecord
         $ordenDias = "FIELD(dia_semana,'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')";
 
         $this->record->load([
-            'semanasRutina.diasEntrenamiento' => fn($q) => $q->orderByRaw($ordenDias),
+            'semanasRutina.diasEntrenamiento' => fn ($q) => $q->orderByRaw($ordenDias),
             'semanasRutina.diasEntrenamiento.ejerciciosDia.seriesEjercicio.seriesRealizadas',
             'semanasRutina.diasEntrenamiento.ejerciciosDia.ejerciciosCompletados',
             'semanasRutina.diasEntrenamiento.ejerciciosDia.ejercicio',
             'semanasRutina.diasEntrenamiento.ejerciciosDia.seriesEjercicio',
             'atleta.user',
-            'entrenador'
+            'entrenador',
         ]);
 
         $this->cargarEjerciciosCompletados();
@@ -60,15 +62,15 @@ class ViewRutina extends ViewRecord
 
     public function toggleEjercicio($ejercicioDiaId)
     {
-        if (!auth()->user()->hasRole('atleta')) {
+        if (! auth()->user()->hasRole('atleta')) {
             return;
         }
 
         $ejercicioCompletado = EjercicioCompletado::firstOrNew([
-            'ejercicio_dia_id' => $ejercicioDiaId
+            'ejercicio_dia_id' => $ejercicioDiaId,
         ]);
 
-        $nuevoEstado = !$ejercicioCompletado->completado;
+        $nuevoEstado = ! $ejercicioCompletado->completado;
         $this->ejerciciosCompletados[$ejercicioDiaId] = $nuevoEstado;
 
         $ejercicioCompletado->completado = $nuevoEstado;
@@ -83,7 +85,7 @@ class ViewRutina extends ViewRecord
 
     public function guardarSerie($serieId)
     {
-        if (!auth()->user()->hasRole('atleta')) {
+        if (! auth()->user()->hasRole('atleta')) {
             return;
         }
 
@@ -95,6 +97,7 @@ class ViewRutina extends ViewRecord
                 ->title('Debes ingresar las repeticiones realizadas')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -102,10 +105,10 @@ class ViewRutina extends ViewRecord
         $ejercicioDiaId = $serieEjercicio->ejercicio_dia_id;
 
         $ejercicioCompletado = EjercicioCompletado::firstOrCreate([
-            'ejercicio_dia_id' => $ejercicioDiaId
+            'ejercicio_dia_id' => $ejercicioDiaId,
         ], [
             'completado' => true,
-            'fecha_completado' => now()
+            'fecha_completado' => now(),
         ]);
 
         SerieRealizada::create([
@@ -114,7 +117,7 @@ class ViewRutina extends ViewRecord
             'repeticiones_realizadas' => $repeticiones,
             'peso_realizado' => $peso,
             'completada' => true,
-            'fecha_realizacion' => now()
+            'fecha_realizacion' => now(),
         ]);
 
         unset($this->repeticiones[$serieId]);
@@ -130,7 +133,7 @@ class ViewRutina extends ViewRecord
 
     public function editarSerie($serieId)
     {
-        if (!auth()->user()->hasRole('atleta')) {
+        if (! auth()->user()->hasRole('atleta')) {
             return;
         }
 
@@ -143,7 +146,7 @@ class ViewRutina extends ViewRecord
             $serieRealizada->delete();
 
             $this->record->load([
-                'semanasRutina.diasEntrenamiento.ejerciciosDia.seriesEjercicio.seriesRealizadas'
+                'semanasRutina.diasEntrenamiento.ejerciciosDia.seriesEjercicio.seriesRealizadas',
             ]);
         }
     }

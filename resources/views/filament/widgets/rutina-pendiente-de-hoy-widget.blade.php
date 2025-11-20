@@ -1,16 +1,12 @@
 {{-- resources/views/filament/widgets/rutina-pendiente-de-hoy-widget.blade.php --}}
 <x-filament-widgets::widget>
-    {{-- Se inicializa Alpine.js para los inputs --}}
     <div x-data>
         <x-filament::section>
             @if (!$this->rutina)
-                {{-- Mensaje para cuando no hay rutina --}}
                 <div class="text-center text-gray-400">Aún no tienes una rutina asignada.</div>
             @elseif (!$this->diaId)
-                {{-- Mensaje de completado --}}
                 <div class="text-center text-green-400">🎉 ¡Felicidades! Has completado toda la rutina.</div>
             @else
-                {{-- Encabezado del día de entrenamiento --}}
                 <div class="flex items-start justify-between mb-4">
                     <div>
                         <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-200">
@@ -24,7 +20,6 @@
                             Semana #{{ $this->semanaNum }} | Rutina: {{ $this->rutina->nombre }}
                         </p>
                     </div>
-                    {{-- BOTÓN AÑADIDO --}}
                     <div>
                         <x-filament::button tag="a"
                             href="{{ route('filament.powerCheck.resources.rutinas.index') }}"
@@ -37,9 +32,7 @@
                 {{-- Lista de ejercicios --}}
                 <div class="space-y-6">
                     @foreach ($this->ejercicios as $ej)
-                        @php
-                            $estaCompletado = $ej['completo'];
-                        @endphp
+                        {{ $estaCompletado = $ej['completo'] }}
                         <div class="p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-sm">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-bold text-gray-100">
@@ -71,10 +64,8 @@
                                     <thead class="text-xs text-gray-300 uppercase bg-gray-700">
                                         <tr>
                                             <th class="px-4 py-2">Serie</th>
-                                            <th class="px-4 py-2">Repeticiones Objetivo</th>
-                                            <th class="px-4 py-2">Peso Objetivo</th>
-                                            <th class="px-4 py-2">Repeticiones Realizadas</th>
-                                            <th class="px-4 py-2">Peso Realizado</th>
+                                            <th class="px-4 py-2">Reps</th>
+                                            <th class="px-4 py-2">Peso kg</th>
                                             <th class="px-4 py-2 text-center">Acciones</th>
                                         </tr>
                                     </thead>
@@ -86,43 +77,54 @@
                                             <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
                                                 <td class="px-4 py-3 font-bold text-gray-200">#{{ $s['n'] }}</td>
                                                 <td class="px-4 py-3">
-                                                    <span
-                                                        class="px-2 py-1 text-sm font-medium text-green-300 bg-green-900 rounded-full">
-                                                        {{ $s['reps'] }} reps
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    <span
-                                                        class="px-2 py-1 text-sm font-medium text-orange-300 bg-orange-900 rounded-full">
-                                                        {{ $s['peso'] }} kg
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-3">
                                                     @if ($serieRealizada)
-                                                        <span
-                                                            class="font-semibold text-gray-200">{{ $serieRealizada->repeticiones_realizadas }}</span>
+                                                        @php
+                                                            $repDiff =
+                                                                $serieRealizada->repeticiones_realizadas - $s['reps'];
+                                                            $repColor = 'text-gray-200';
+                                                            if ($repDiff > 0) {
+                                                                $repColor = 'text-green-400';
+                                                            } elseif ($repDiff < 0) {
+                                                                $repColor = 'text-red-400';
+                                                            }
+                                                        @endphp
+                                                        <span class="font-semibold {{ $repColor }}">
+                                                            {{ $serieRealizada->repeticiones_realizadas }}
+                                                        </span>
+                                                        <span class="text-xs text-gray-400">/
+                                                            {{ $s['reps'] }}</span>
                                                     @else
                                                         <x-filament::input.wrapper
                                                             class="bg-gray-700 border-gray-600 focus-within:ring-primary-500 focus-within:border-primary-500">
                                                             <x-filament::input type="text" inputmode="numeric"
                                                                 wire:model.defer="repeticiones.{{ $s['id'] }}"
-                                                                placeholder="0"
                                                                 class="text-gray-100 placeholder-gray-400 bg-gray-700"
                                                                 x-on:input="$event.target.value = $event.target.value.replace(/[^0-9]/g, '')" />
                                                         </x-filament::input.wrapper>
                                                     @endif
                                                 </td>
+
                                                 <td class="px-4 py-3">
                                                     @if ($serieRealizada)
-                                                        <span
-                                                            class="font-semibold text-gray-200">{{ $serieRealizada->peso_realizado }}
-                                                            kg</span>
+                                                        @php
+                                                            $pesoDiff = $serieRealizada->peso_realizado - $s['peso'];
+                                                            $pesoColor = 'text-gray-200';
+                                                            if ($pesoDiff > 0) {
+                                                                $pesoColor = 'text-green-400';
+                                                            } elseif ($pesoDiff < 0) {
+                                                                $pesoColor = 'text-red-400';
+                                                            }
+                                                        @endphp
+                                                        <span class="font-semibold {{ $pesoColor }}">
+                                                            {{ $serieRealizada->peso_realizado }}
+                                                        </span>
+                                                        <span class="text-xs text-gray-400">/
+                                                            {{ $s['peso'] }}</span>
                                                     @else
                                                         <x-filament::input.wrapper
                                                             class="bg-gray-700 border-gray-600 focus-within:ring-primary-500 focus-within:border-primary-500">
                                                             <x-filament::input type="text" inputmode="decimal"
                                                                 wire:model.defer="peso.{{ $s['id'] }}"
-                                                                placeholder="0.0"
                                                                 class="text-gray-100 placeholder-gray-400 bg-gray-700"
                                                                 x-on:input="$event.target.value = $event.target.value.replace(/[^0-9.]/g, '')" />
                                                         </x-filament::input.wrapper>
@@ -146,6 +148,7 @@
                                     </tbody>
                                 </table>
                             </div>
+
                         </div>
                     @endforeach
                 </div>

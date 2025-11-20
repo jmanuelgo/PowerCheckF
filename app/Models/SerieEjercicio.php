@@ -16,7 +16,7 @@ class SerieEjercicio extends Model
         'numero_serie',
         'repeticiones_objetivo',
         'peso_objetivo',
-        'descanso_segundos'
+        'descanso_segundos',
     ];
 
     protected $casts = [

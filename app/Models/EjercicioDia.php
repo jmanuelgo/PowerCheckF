@@ -15,7 +15,7 @@ class EjercicioDia extends Model
         'dia_entrenamiento_id',
         'ejercicio_id',
         'orden',
-        'notas'
+        'notas',
     ];
 
     public function diaEntrenamiento()
@@ -36,5 +36,10 @@ class EjercicioDia extends Model
     public function ejerciciosCompletados()
     {
         return $this->hasMany(EjercicioCompletado::class, 'ejercicio_dia_id');
+    }
+
+    public function series()
+    {
+        return $this->hasMany(\App\Models\SerieEjercicio::class, 'ejercicio_dia_id');
     }
 }

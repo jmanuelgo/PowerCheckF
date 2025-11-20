@@ -5,7 +5,7 @@ namespace App\Filament\Widgets;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\Ejercicio; // Asegúrate de importar tu modelo Ejercicio
+use App\Models\Ejercicio;
 
 class PesoProgresoChart extends ChartWidget
 {
